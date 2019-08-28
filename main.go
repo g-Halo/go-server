@@ -3,7 +3,19 @@ package main
 import (
 	"fmt"
 	"net"
+	"gopkg.in/mgo.v2"
+	"github.com/yigger/go-server/server"
+	//"gopkg.in/mgo.v2/bson"
 )
+
+func init() {
+	fmt.Println("init")
+	session, err:=mgo.Dial("mongodb://localhost")
+	if err != nil {
+		panic(err)
+	}
+	defer session.Close()
+}
 
 func main() {
 	fmt.Println("start a server")
@@ -18,19 +30,13 @@ func main() {
 			fmt.Println("无效的请求链接")
 		}
 
-		go doServer(conn)
+		srv := &server.Server{conn}
+		go doServer(srv)
 	}
 }
 
-func doServer(conn net.Conn) {
+func doServer(server *server.Server) {
 	for {
-		buf := make([]byte, 512)
-		len, err := conn.Read(buf)
-		if err != nil {
-			fmt.Println("Error reading")
-			return
-		}
-
-		fmt.Println("Receive data is: %v", string(buf[:len]))
+		server.Main()
 	}
 }
