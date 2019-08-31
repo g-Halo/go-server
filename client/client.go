@@ -8,6 +8,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"log"
+	"net"
 	"os"
 	"strings"
 )
@@ -18,7 +19,7 @@ func getCommand() string {
 	// 不知道干什么
 	clientName, _ := inputReader.ReadString('\n')
 	// 过滤 \r\n 仅 Windows 平台需要
-	return string(strings.Trim(clientName, "\r\n"))
+	return strings.Trim(clientName, "\r\n")
 }
 
 func init() {
@@ -36,10 +37,18 @@ func init() {
 }
 
 func main() {
-	//conn, err := net.Dial("tcp", "localhost:5000")
-	//if err != nil {
-	//	panic(err)
-	//}
+	conn, err := net.Dial("tcp", "localhost:5000")
+	if err != nil {
+		panic(err)
+	}
+	// initialize tcp protocol
+	_, err = conn.Write([]byte("  CHAT"))
+	for {
+		fmt.Print("please input：")
+		inputReader := bufio.NewReader(os.Stdin)
+		clientName, _ := inputReader.ReadString('\n')
+		_, err = conn.Write([]byte(clientName))
+	}
 
 	var User model.User
 	for {
