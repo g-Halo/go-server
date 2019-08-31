@@ -7,19 +7,15 @@ import (
 )
 
 func main() {
-	go func() {
-		chatServer, err := server.NewChatS()
-		if err != nil {
-			panic(err)
-		}
+	chatServer, err := server.NewChatS()
+	if err != nil {
+		panic(err)
+	}
 
-		fmt.Println("Start the server and listening localhost:5000")
-		err = chatServer.Main()
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-	}()
-
-	select {}
+	fmt.Println("Start the server and listening localhost:5000")
+	err = chatServer.Main()
+	if err != nil {
+		fmt.Println(err)
+		os.Exit(1)
+	}
 }

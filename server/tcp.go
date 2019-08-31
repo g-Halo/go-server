@@ -23,8 +23,7 @@ func (p *tcpServer) Handle(conn net.Conn) {
 	case "  CHAT":
 		prot = &protocolV2{ctx: p.ctx}
 	default:
-		//fmt.Println("Tcp file: handle switch default")
-		panic("Tcp file: handle switch default")
+		panic("Tcp: protocol fail")
 	}
 
 	err = prot.IOLoop(conn)
