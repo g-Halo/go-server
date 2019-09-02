@@ -18,7 +18,7 @@ type ChatS struct {
 	waitGroup            util.WaitGroupWrapper
 	startTime			 time.Time
 	clients 			 map[int64]*client
-
+	rooms				 map[string]*room
 }
 
 func NewChatS() (chat *ChatS, err error) {
@@ -26,6 +26,7 @@ func NewChatS() (chat *ChatS, err error) {
 		startTime: time.Now(),
 		address: "localhost:5000",
 		clients: make(map[int64]*client),
+		rooms: make(map[string]*room),
 	}
 	chat.tcpListener, err = net.Listen("tcp", "localhost:5000")
 	return

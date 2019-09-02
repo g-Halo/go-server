@@ -34,7 +34,8 @@ func main() {
 	// initialize tcp protocol
 	// 发送特定的协议内容开启通讯
 	_, err = conn.Write([]byte("  CHAT"))
-
+	_, err = conn.Write([]byte("LOGIN abc\n"))
+	_, err = conn.Write([]byte("CREATE_ROOM abc\n"))
 
 	go func(){
 		for {

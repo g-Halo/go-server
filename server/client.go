@@ -42,3 +42,7 @@ func newClient(id int64, conn net.Conn, ctx *context) *client {
 	c.lenSlice = c.lenBuf[:]
 	return c
 }
+
+func (c *client) SubRoom(room *room) {
+
+}
