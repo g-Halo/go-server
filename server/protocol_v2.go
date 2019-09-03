@@ -2,7 +2,6 @@ package server
 
 import (
 	"bytes"
-	"encoding/binary"
 	"fmt"
 	"io"
 	"net"
@@ -47,13 +46,6 @@ func (p *protocolV2) IOLoop(conn net.Conn) error {
 		//var response []byte
 		params := bytes.Split(line, separatorBytes)
 		p.Exec(client, params)
-
-		//fmt.Println(string(line))
-		//
-		//// 把消息转发到某(线上用户)，可考虑缓存离线的用户
-		//target := p.ctx.chatS.clients[2]
-		//conn := target.Conn
-		//_, err = conn.Write([]byte("welcome to connect\n"))
 	}
 
 	_ = conn.Close()
@@ -66,6 +58,8 @@ func (p *protocolV2) Exec(client *client, params [][]byte) {
 		p.Login(client, params)
 	case bytes.Equal(params[0], []byte("CREATE_ROOM")):
 		p.CreateRoom(client, params)
+	case bytes.Equal(params[0], []byte("SEND")):
+		p.SendMessage(client, params)
 	}
 }
 
@@ -95,10 +89,27 @@ func (p *protocolV2) CreateRoom(client *client, params [][]byte) {
 	go client.SubRoom(room)
 }
 
-func readLen(r io.Reader, tmp []byte) (int32, error) {
-	_, err := io.ReadFull(r, tmp)
-	if err != nil {
-		return 0, err
+func (p *protocolV2) SendMessage(client *client, params [][]byte) {
+	if len(params) < 3 {
+		fmt.Println("无效的协议")
+		return
 	}
-	return int32(binary.BigEndian.Uint32(tmp)), nil
+
+	roomName := string(params[1])
+	if len(roomName) < 1 || len(roomName) > 255 {
+		fmt.Println("房间名字符数仅允许 1 - 255 个字符")
+		return
+	}
+
+	room := p.ctx.chatS.GetOrCreateByRoom(roomName)
+	// 房间记录当前连接数
+	room.AddClient(client)
+
+	// 订阅房间消息，不断从房间的内容中读取消息，并返回给用户
+	go client.SubRoom(room)
+
+	// send message body
+	messageBody := string(params[2])
+	message := NewMessage(client, messageBody)
+	client.SendMessage(room, message)
 }

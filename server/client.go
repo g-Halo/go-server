@@ -2,8 +2,10 @@ package server
 
 import (
 	"bufio"
+	"fmt"
 	"net"
 	"sync"
+	"time"
 )
 
 const defaultBufferSize = 16 * 1024
@@ -44,5 +46,29 @@ func newClient(id int64, conn net.Conn, ctx *context) *client {
 }
 
 func (c *client) SubRoom(room *room) {
+	for {
+		select {
+		case message := <-room.messageChan[c.ID]:
+			if _, err := c.Write([]byte(message.content)); err != nil {
+				fmt.Sprintln("SubRoom Get Message Fail, err = %V", err.Error())
+			}
+		case <-time.After(time.Millisecond):
+		}
+	}
+}
 
+func (c *client) SendMessage(room *room, msg *message) {
+	fmt.Sprintln("Get Message from %d, content %s:", c.ID, msg.content)
+	room.AddMessage(msg)
+
+	// 初始化 channel
+	if _, ok := room.messageChan[c.ID]; !ok {
+		msgChan := make(chan *message)
+		room.messageChan[c.ID] = msgChan
+	}
+
+	// 给所有在房间内的用户发送消息
+	for _, client := range room.clients {
+		room.messageChan[client.ID] <- msg
+	}
 }
