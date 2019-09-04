@@ -6,9 +6,11 @@ import (
 	"io"
 	"net"
 	"sync/atomic"
+	"time"
 )
 
 var separatorBytes = []byte(" ")
+var heartbeatBytes = []byte("__heartbeat__")
 
 type protocolV2 struct {
 	ctx *context
@@ -23,6 +25,20 @@ func (p *protocolV2) IOLoop(conn net.Conn) error {
 	client := newClient(clientID, conn, p.ctx)
 	p.ctx.chatS.AddClient(client.ID, client)
 	fmt.Println("local ClientID is:", client.ID)
+
+	go func(){
+		heartbeatTicker := time.NewTicker(4 * time.Second)
+		heartbeatChan := heartbeatTicker.C
+		for {
+			select {
+			case <-heartbeatChan:
+				if err := p.HeartBeat(client); err != nil {
+					// 检测客户端失败，处理客户端退出后的逻辑
+					fmt.Println("heartbeat fail")
+				}
+			}
+		}
+	}()
 
 	// 随后循环遍历获取消息
 	for {
@@ -112,4 +128,9 @@ func (p *protocolV2) SendMessage(client *client, params [][]byte) {
 	messageBody := string(params[2])
 	message := NewMessage(client, messageBody)
 	client.SendMessage(room, message)
+}
+
+func (p *protocolV2) HeartBeat(client *client) error {
+	_, err := client.Write(heartbeatBytes)
+	return err
 }
