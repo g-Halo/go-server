@@ -2,17 +2,18 @@ package main
 
 import (
 	"fmt"
+	"github.com/yigger/go-server/conf"
 	"github.com/yigger/go-server/server"
 	"os"
 )
 
 func main() {
-	chatServer, err := server.NewChatS()
+	config := conf.LoadConf()
+	chatServer, err := server.NewChatS(config)
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println("Start the server and listening localhost:5000")
 	err = chatServer.Main()
 	if err != nil {
 		fmt.Println(err)

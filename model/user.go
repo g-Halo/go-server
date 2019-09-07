@@ -2,41 +2,89 @@ package model
 
 import (
 	"context"
-	"fmt"
+	"encoding/hex"
+	"errors"
 	"go.mongodb.org/mongo-driver/mongo"
-	"log"
+	"go.mongodb.org/mongo-driver/bson"
+	"crypto/md5"
+	"math/rand"
+	"time"
 )
 
 type User struct {
-	Username string
-	Password string
-	NickName string
+	Username string `json:"username"`
+	Salt	 string `json:"salt"`
+	Password string	`json:"password"`
+	NickName string	`json:"nickname"`
+
+
+	CreatedAt time.Time `json:"created_at"`
 }
 
-var CurrentUser = &User{}
-var DB *mongo.Client
-
-func (User) Login(username, password string) bool {
-	user := &User{Username: username, Password: password}
-	collection := DB.Database("chat").Collection("users")
-	insertResult, err := collection.InsertOne(context.TODO(), user)
+func (u User) Login(client *mongo.Client, username, password string) (string, error) {
+	queryFilter := bson.M{"username": username}
+	user, err := u.FindByUsername(client, queryFilter)
 	if err != nil {
-		log.Fatal(err)
+		return "", errors.New("用户名或密码错误 - 0")
 	}
 
-	fmt.Println("Inserted a single document: ", insertResult.InsertedID)
+	// 密码加盐校验
+	salt := user.Salt
+	m5 := md5.New()
+	m5.Write([]byte(salt))
+	m5.Write([]byte(string(password)))
+	st := m5.Sum(nil)
+	if hex.EncodeToString(st) != user.Password {
+		return "", errors.New("用户名或密码错误 - 1")
+	}
 
-	return username == "admin" && password == "123"
+	// 生成 JWT token
+	token := "OK"
+
+	return token, nil
 }
 
-func (User) SignUp(nickname, username, password string) bool {
-	user := &User{Username: username, Password: password}
-	collection := DB.Database("chat").Collection("users")
-	insertResult, err := collection.InsertOne(context.TODO(), user)
-	if err != nil {
-		log.Fatal(err)
+// 注册用户
+func (User) SignUp(client *mongo.Client, nickname, username, password string) error {
+	// 生成随机 salt
+	rand := func (n int) string {
+		var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+		b := make([]rune, n)
+		for i := range b {
+			b[i] = letterRunes[rand.Intn(len(letterRunes))]
+		}
+		return string(b)
 	}
-	fmt.Println("Inserted a single document: ", insertResult.InsertedID)
 
-	return true
+	// 加密处理
+	m5 := md5.New()
+	salt := rand(8)
+	m5.Write([]byte(salt))
+	m5.Write([]byte(string(password)))
+	st := m5.Sum(nil)
+	user := &User{
+		Username: username,
+		Salt: salt,
+		Password: hex.EncodeToString(st),
+		NickName: nickname,
+		CreatedAt: time.Now(),
+	}
+	collection := client.Database("chat").Collection("users")
+	_, err := collection.InsertOne(context.TODO(), user)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+
+func (User) FindByUsername(client *mongo.Client, filter bson.M) (User, error) {
+	var user User
+	collection := client.Database("chat").Collection("users")
+	documentReturned := collection.FindOne(context.TODO(), filter)
+	err := documentReturned.Decode(&user)
+	if err != nil {
+		return user, err
+	}
+	return user, nil
 }

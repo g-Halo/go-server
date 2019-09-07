@@ -25,6 +25,7 @@ type client struct {
 	lenBuf   [4]byte
 	lenSlice []byte
 
+	rooms     []*room
 	ClientID string
 }
 
@@ -40,12 +41,24 @@ func newClient(id int64, conn net.Conn, ctx *context) *client {
 		Reader: bufio.NewReaderSize(conn, defaultBufferSize),
 		Writer: bufio.NewWriterSize(conn, defaultBufferSize),
 		ClientID: identifier,
+		rooms: make([]*room, 100),
 	}
 	c.lenSlice = c.lenBuf[:]
 	return c
 }
 
+func (c *client) close() {
+	//for _, room := range c.rooms {
+	//	if _, ok := room.messageChan[c.ID]; ok {
+	//		close(room.messageChan[c.ID])
+	//	}
+	//}
+	c.Conn.Close()
+	c.Close()
+}
+
 func (c *client) SubRoom(room *room) {
+	c.rooms = append(c.rooms, room)
 	for {
 		select {
 		case message := <-room.messageChan[c.ID]:
@@ -58,7 +71,7 @@ func (c *client) SubRoom(room *room) {
 }
 
 func (c *client) SendMessage(room *room, msg *message) {
-	fmt.Sprintln("Get Message from %d, content %s:", c.ID, msg.content)
+	fmt.Printf("Get Message from %d, content %s:", c.ID, msg.content)
 	room.AddMessage(msg)
 
 	// 初始化 channel

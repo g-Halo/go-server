@@ -16,6 +16,24 @@ type protocolV2 struct {
 	ctx *context
 }
 
+// 每 4 秒发送一个 __heartbeat__ 包给客户端
+func (p *protocolV2) heartBeat(client *client) {
+	heartbeatTicker := time.NewTicker(4 * time.Second)
+	heartbeatChan := heartbeatTicker.C
+	for {
+		select {
+		case <-heartbeatChan:
+			if err := p.handleHeartBeat(client); err != nil {
+				// 检测到客户端已断开连接
+				goto exit
+			}
+		}
+	}
+exit:
+	fmt.Printf("客户端 %d 已退出连接\n", client.ID)
+	client.close()
+}
+
 func (p *protocolV2) IOLoop(conn net.Conn) error {
 	var err error
 	var line []byte
@@ -26,19 +44,8 @@ func (p *protocolV2) IOLoop(conn net.Conn) error {
 	p.ctx.chatS.AddClient(client.ID, client)
 	fmt.Println("local ClientID is:", client.ID)
 
-	go func(){
-		heartbeatTicker := time.NewTicker(4 * time.Second)
-		heartbeatChan := heartbeatTicker.C
-		for {
-			select {
-			case <-heartbeatChan:
-				if err := p.HeartBeat(client); err != nil {
-					// 检测客户端失败，处理客户端退出后的逻辑
-					fmt.Println("heartbeat fail")
-				}
-			}
-		}
-	}()
+	// 注册心跳包
+	go p.heartBeat(client)
 
 	// 随后循环遍历获取消息
 	for {
@@ -130,7 +137,7 @@ func (p *protocolV2) SendMessage(client *client, params [][]byte) {
 	client.SendMessage(room, message)
 }
 
-func (p *protocolV2) HeartBeat(client *client) error {
+func (p *protocolV2) handleHeartBeat(client *client) error {
 	_, err := client.Write(heartbeatBytes)
 	return err
 }

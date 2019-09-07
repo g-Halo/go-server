@@ -1,34 +1,56 @@
 package server
 
 import (
+	"fmt"
+	"github.com/yigger/go-server/conf"
+	"github.com/yigger/go-server/http_api"
 	"github.com/yigger/go-server/protocol"
 	"github.com/yigger/go-server/util"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 	"net"
 	"sync"
 	"time"
+	ctx "context"
 )
 
 type ChatS struct {
 	// 64bit atomic vars need to be first for proper alignment on 32bit platforms
-	clientIDSequence int64
+	clientIDSequence 		int64
+	conf 				 	*conf.Config
+
+	clients 			 	map[int64]*client
+	rooms				 	map[string]*room
 
 	sync.RWMutex
-	tcpListener   		 net.Listener
-	address				 string
-	waitGroup            util.WaitGroupWrapper
-	startTime			 time.Time
-	clients 			 map[int64]*client
-	rooms				 map[string]*room
+	waitGroup            	util.WaitGroupWrapper
+
+	tcpListener   		 	net.Listener
+	httpListener		 	net.Listener
+
+	mongoClient 			*mongo.Client
+	startTime			 	time.Time
 }
 
-func NewChatS() (chat *ChatS, err error) {
+func NewChatS(conf *conf.Config) (chat *ChatS, err error) {
 	chat = &ChatS{
 		startTime: time.Now(),
-		address: "localhost:5000",
 		clients: make(map[int64]*client),
 		rooms: make(map[string]*room),
+		conf: conf,
 	}
-	chat.tcpListener, err = net.Listen("tcp", "localhost:5000")
+	fmt.Printf("Start listening Tcp %s ...\n", conf.TcpAddress)
+	chat.tcpListener, err = net.Listen("tcp", conf.TcpAddress)
+
+	// 初始化 http servers
+	fmt.Printf("Start listening Http %s ...\n", conf.HttpAddress)
+	chat.httpListener, err = net.Listen("tcp", conf.HttpAddress)
+
+	// 初始化 mongodb 的 client
+	clientOptions := options.Client().ApplyURI(conf.MongoDbAddress)
+	mongoClient, err := mongo.Connect(ctx.TODO(), clientOptions)
+	chat.mongoClient = mongoClient
+
 	return
 }
 
@@ -55,6 +77,12 @@ func (s *ChatS) Main() error {
 	tcpServer := &tcpServer{ctx: ctx}
 	s.waitGroup.Wrap(func() {
 		exitFunc(protocol.TCPServer(s.tcpListener, tcpServer))
+	})
+
+	// 初始化 http api 服务
+	httpServer := newHTTPServer(ctx)
+	s.waitGroup.Wrap(func() {
+		exitFunc(http_api.Serve(s.httpListener, httpServer, "HTTP"))
 	})
 
 	<- exitCh
