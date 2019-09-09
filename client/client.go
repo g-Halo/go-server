@@ -2,29 +2,10 @@ package main
 
 import (
 	"bufio"
-	"context"
 	"fmt"
-	"github.com/yigger/go-server/model"
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/mongo/options"
-	"log"
 	"net"
 	"os"
 )
-
-func init() {
-	// Set client options
-	clientOptions := options.Client().ApplyURI("mongodb://localhost:27017")
-
-	// Connect to MongoDB
-	client, err := mongo.Connect(context.TODO(), clientOptions)
-
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	model.DB = client
-}
 
 func receive(conn net.Conn) {
 	for {

@@ -4,6 +4,8 @@ import (
 	"context"
 	"encoding/hex"
 	"errors"
+	"github.com/yigger/go-server/util"
+
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/bson"
 	"crypto/md5"
@@ -16,8 +18,6 @@ type User struct {
 	Salt	 string `json:"salt"`
 	Password string	`json:"password"`
 	NickName string	`json:"nickname"`
-
-
 	CreatedAt time.Time `json:"created_at"`
 }
 
@@ -39,7 +39,9 @@ func (u User) Login(client *mongo.Client, username, password string) (string, er
 	}
 
 	// 生成 JWT token
-	token := "OK"
+	userInfo := make(map[string]interface{})
+	userInfo["username"] = user.Username
+	token := util.CreateJWT(userInfo)
 
 	return token, nil
 }

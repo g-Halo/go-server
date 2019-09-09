@@ -1,5 +1,6 @@
 {
     "tcp_address": ":5000",
     "http_address": ":5001",
-    "mongodb_address": "mongodb://localhost:27017"
+    "mongodb_address": "mongodb://localhost:27017",
+    "secret_key": "jwt secret token"
 }

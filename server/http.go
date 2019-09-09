@@ -1,9 +1,11 @@
 package server
 
 import (
+	"github.com/dgrijalva/jwt-go"
 	"github.com/julienschmidt/httprouter"
 	"github.com/yigger/go-server/http_api"
 	"github.com/yigger/go-server/model"
+	"github.com/yigger/go-server/util"
 	"go.mongodb.org/mongo-driver/bson"
 	"net/http"
 	"net/url"
@@ -82,6 +84,27 @@ func (s *httpServer) loginHandler(w http.ResponseWriter, req *http.Request, ps h
 }
 
 func (s *httpServer) rootHandle(w http.ResponseWriter, req *http.Request, ps httprouter.Params) (interface{}, error) {
+	reqParams, _ := url.ParseQuery(req.URL.RawQuery)
+	token := reqParams["token"][0]
+	user, _ := s.ValidateToken(token)
+	if user == nil {
+		return "validate fail", nil
+	} else {
+		return "OK", nil
+	}
+}
 
-	return "OK", nil
+func (s *httpServer) ValidateToken(tokenString string) (*model.User, bool) {
+	token, _ := jwt.ParseWithClaims(tokenString, &util.MyCustomClaims{}, func(token *jwt.Token) (interface{}, error) {
+		return []byte(s.ctx.chatS.conf.SecretKey), nil
+	})
+
+	if claims, ok := token.Claims.(*util.MyCustomClaims); ok && token.Valid {
+		var User model.User
+		client := s.ctx.chatS.mongoClient
+		user, _ := User.FindByUsername(client, bson.M{"username": claims.Username})
+		return &user, true
+	} else {
+		return nil, false
+	}
 }
