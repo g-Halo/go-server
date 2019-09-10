@@ -3,9 +3,12 @@ package http_api
 import (
 	"fmt"
 	"github.com/julienschmidt/httprouter"
+	"github.com/yigger/go-server/model"
 	"io"
 	"net/http"
+	"text/template"
 )
+
 
 type Err struct {
 	Code int
@@ -43,5 +46,26 @@ func PlainText(f APIHandler) APIHandler {
 			panic(fmt.Sprintf("unknown response type %T", data))
 		}
 		return nil, nil
+	}
+}
+
+func MiddlewareHandler(mdFunc func(string) (*model.User, bool), fn func(http.ResponseWriter, *http.Request, string)) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		token := r.Header["Token"][0]
+		user, _ := mdFunc(token)
+		if user == nil {
+			w.WriteHeader(401)
+			w.Write([]byte("401 Unauthorized"))
+		} else {
+			fn(w, r, "")
+		}
+	}
+}
+
+func RenderTemplate(tmpl string) httprouter.Handle {
+	return func(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
+		filename := "views/" + tmpl + ".html"
+		templ := template.Must(template.ParseFiles(filename))
+		_ = templ.Execute(w, "")
 	}
 }

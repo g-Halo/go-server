@@ -7,6 +7,7 @@ import (
 	"github.com/yigger/go-server/model"
 	"github.com/yigger/go-server/util"
 	"go.mongodb.org/mongo-driver/bson"
+	"io"
 	"net/http"
 	"net/url"
 	//ctx "context"
@@ -36,10 +37,12 @@ func newHTTPServer(ctx *context) *httpServer {
 		router: router,
 	}
 
-	router.Handle("GET", "/", http_api.Decorate(server.rootHandle, http_api.PlainText))
+	router.Handle("GET", "/", http_api.RenderTemplate("home"))
+
 	router.Handle("POST", "/sign", http_api.Decorate(server.signHandler, http_api.PlainText))
 	router.Handle("POST", "/login", http_api.Decorate(server.loginHandler, http_api.PlainText))
 
+	router.HandlerFunc("POST", "/v1/create_room", http_api.MiddlewareHandler(server.ValidateToken, server.CreateRoom))
 	return server
 }
 
@@ -83,17 +86,6 @@ func (s *httpServer) loginHandler(w http.ResponseWriter, req *http.Request, ps h
 	return token, err
 }
 
-func (s *httpServer) rootHandle(w http.ResponseWriter, req *http.Request, ps httprouter.Params) (interface{}, error) {
-	reqParams, _ := url.ParseQuery(req.URL.RawQuery)
-	token := reqParams["token"][0]
-	user, _ := s.ValidateToken(token)
-	if user == nil {
-		return "validate fail", nil
-	} else {
-		return "OK", nil
-	}
-}
-
 func (s *httpServer) ValidateToken(tokenString string) (*model.User, bool) {
 	token, _ := jwt.ParseWithClaims(tokenString, &util.MyCustomClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return []byte(s.ctx.chatS.conf.SecretKey), nil
@@ -107,4 +99,8 @@ func (s *httpServer) ValidateToken(tokenString string) (*model.User, bool) {
 	} else {
 		return nil, false
 	}
+}
+
+func (s *httpServer) CreateRoom(w http.ResponseWriter, r *http.Request, p string) {
+	io.WriteString(w, "test")
 }
