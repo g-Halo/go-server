@@ -1,14 +1,20 @@
+var path = require('path');
+
 module.exports = {
-    devtool: 'eval-source-map',
     entry: __dirname + "/assets/js/main.js",
+    devtool: 'cheap-module-eval-source-map',
     output: {
-        path: __dirname + "/public",
-        filename: "application.js"
+        path: path.resolve(__dirname, 'public/'),
+        filename: "application.js",
+        publicPath: '/public/',
+        sourceMapFilename: '[name].map',
+        chunkFilename: '[id].chunk.js',
     },
     devServer: {
-        contentBase: "./public",    //本地服务器所加载的页面所在的目录
-        historyApiFallback: true,   //不跳转
-        inline: true                //实时刷新
+        inline: true,
+        contentBase: path.join(__dirname, 'public'),
+        writeToDisk: true,
+        port: 4399,
     },
     resolve: {
         extensions: ['*', '.js', '.jsx']
@@ -30,5 +36,6 @@ module.exports = {
             }
         ]
     },
+    // plugins: [HTMLWebpackPluginConfig],
     mode: "development"
 }
