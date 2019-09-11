@@ -1,15 +1,19 @@
 package server
 
 import (
+	"fmt"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/julienschmidt/httprouter"
 	"github.com/yigger/go-server/http_api"
 	"github.com/yigger/go-server/model"
 	"github.com/yigger/go-server/util"
 	"go.mongodb.org/mongo-driver/bson"
+	"github.com/gorilla/websocket"
 	"io"
 	"net/http"
 	"net/url"
+	"time"
+
 	//ctx "context"
 )
 
@@ -28,6 +32,11 @@ func validateParams(params map[string][]string, keys []string) bool {
 	return true
 }
 
+var upgrader = websocket.Upgrader{
+	ReadBufferSize:  1024,
+	WriteBufferSize: 1024,
+}
+
 func newHTTPServer(ctx *context) *httpServer {
 	router := httprouter.New()
 	router.HandleMethodNotAllowed = true
@@ -37,12 +46,17 @@ func newHTTPServer(ctx *context) *httpServer {
 		router: router,
 	}
 
+	router.ServeFiles("/public/*filepath", http.Dir("/Users/yigger/Projects/go-server/public"))
 	router.Handle("GET", "/", http_api.RenderTemplate("home"))
-
 	router.Handle("POST", "/sign", http_api.Decorate(server.signHandler, http_api.PlainText))
 	router.Handle("POST", "/login", http_api.Decorate(server.loginHandler, http_api.PlainText))
-
+	router.HandlerFunc("POST", "/v1/info", http_api.MiddlewareHandler(server.ValidateToken, server.Info))
 	router.HandlerFunc("POST", "/v1/create_room", http_api.MiddlewareHandler(server.ValidateToken, server.CreateRoom))
+	router.HandlerFunc("GET", "/ws", func(w http.ResponseWriter, r *http.Request) {
+		conn, _ := upgrader.Upgrade(w, r, nil)
+		go server.readPump(conn)
+		//go server.writePump(conn)
+	})
 	return server
 }
 
@@ -103,4 +117,32 @@ func (s *httpServer) ValidateToken(tokenString string) (*model.User, bool) {
 
 func (s *httpServer) CreateRoom(w http.ResponseWriter, r *http.Request, p string) {
 	io.WriteString(w, "test")
+}
+
+func (s *httpServer) Info(w http.ResponseWriter, r *http.Request, p string) {
+	chatS := s.ctx.chatS
+	roomNums := len(chatS.rooms)
+	clientNums := len(chatS.clients)
+	str := fmt.Sprintf("room: %d， client: %d", roomNums, clientNums)
+	io.WriteString(w, str)
+}
+
+func (s *httpServer) readPump(conn *websocket.Conn) {
+	for {
+		_, message, _ := conn.ReadMessage()
+		if message == nil {
+			return
+		}
+
+		fmt.Println(string(message))
+	}
+}
+
+
+func (s *httpServer) writePump(conn *websocket.Conn) {
+	for {
+		w, _ := conn.NextWriter(websocket.TextMessage)
+		w.Write([]byte("test"))
+		time.Sleep(5e9)
+	}
 }

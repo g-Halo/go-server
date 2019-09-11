@@ -1,0 +1,39 @@
+{
+  "name": "go-server",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "dev": "node_modules/.bin/webpack",
+    "server": "node_modules/.bin/webpack-dev-server"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/yigger/go-server.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/yigger/go-server/issues"
+  },
+  "homepage": "https://github.com/yigger/go-server#readme",
+  "devDependencies": {
+    "@babel/core": "^7.6.0",
+    "@babel/preset-env": "^7.6.0",
+    "@babel/preset-react": "^7.0.0",
+    "babel-core": "^7.0.0-bridge.0",
+    "babel-loader": "^7.1.5",
+    "css-loader": "^3.2.0",
+    "react": "^16.9.0",
+    "style-loader": "^1.0.0",
+    "webpack": "^4.39.3",
+    "webpack-cli": "^3.3.8",
+    "webpack-dev-server": "^3.8.0"
+  },
+  "dependencies": {
+    "node-sass": "^4.12.0",
+    "react-dom": "^16.9.0",
+    "sass-loader": "^8.0.0",
+    "scss-loader": "0.0.1"
+  }
+}
