@@ -17,7 +17,10 @@ module.exports = {
         port: 4399,
     },
     resolve: {
-        extensions: ['*', '.js', '.jsx']
+        extensions: ['*', '.js', '.jsx'],
+        alias: {
+            '~': path.join(__dirname, 'assets')
+        }
     },
     module: {
         rules: [
@@ -36,6 +39,5 @@ module.exports = {
             }
         ]
     },
-    // plugins: [HTMLWebpackPluginConfig],
     mode: "development"
 }

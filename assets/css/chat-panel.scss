@@ -1,0 +1,10 @@
+.chat-panel {
+  flex: 1;
+  padding: 12px 8px;
+  .chat-header {
+    display: flex;
+    .username {
+      margin-left: 12px;
+    }
+  }
+}
