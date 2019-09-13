@@ -25,7 +25,6 @@ class List extends React.Component {
         this.setState({
             activeUserId: user.id
         })
-        console.log(user)
     }
 
     render() {
@@ -41,7 +40,7 @@ class List extends React.Component {
                 <div className="contact-panel-user__info">
                     <div className="user__header">
                         <span className="user__name">{user.name}</span>
-                        <span className="text-gray">{user.time}</span>
+                        <span className="text-gray fs12">{user.time}</span>
                     </div>
                     <div className="user__desc">
                         <span className="text-gray message-desc">{user.desc}</span>

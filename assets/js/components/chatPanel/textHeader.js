@@ -3,8 +3,10 @@ import React from 'react'
 class TextHeader extends React.Component {
   render() {
     return (
-        <div className="chat-message-panel">
-            聊天主面板
+        <div className="chat-text-header">
+            <i className="iconfont iconemoji"></i>
+            <i className="iconfont icontupian"></i>
+            <i className="iconfont iconfujian"></i>
         </div>
     )
   }

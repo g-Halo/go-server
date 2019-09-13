@@ -3,8 +3,8 @@ import React from 'react'
 class TextInput extends React.Component {
   render() {
     return (
-        <div className="chat-message-panel">
-            聊天主面板
+        <div className="chat-text-input">
+            <textarea placeholder="enter 键发送"></textarea>
         </div>
     )
   }

@@ -28,6 +28,7 @@ body {
         padding: 12px 6px;
         border: none;
         border-bottom: 1px solid #eeeeee;
+        outline: none;
     }
 }
 
@@ -44,6 +45,12 @@ body {
 .chat.avatar.normal {
     width: 45px;
     height: 45px;
+    border-radius: 50%;
+}
+
+.chat.avatar.small {
+    width: 35px;
+    height: 35px;
     border-radius: 50%;
 }
 
