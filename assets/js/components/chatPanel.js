@@ -1,8 +1,8 @@
 import React from 'react'
-import Header from './chatPanel/header'
-import MessagePanel from './chatPanel/messagePanel'
-import TextHeader from './chatPanel/textHeader'
-import TextInput from './chatPanel/textInput'
+import Header from './chat-panel/header'
+import MessagePanel from './chat-panel/messagePanel'
+import TextHeader from './chat-panel/textHeader'
+import TextInput from './chat-panel/textInput'
 import '~/css/chat-panel.scss'
 
 class ChatPanel extends React.Component {

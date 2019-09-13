@@ -1,12 +1,11 @@
 import React from 'react';
 import ReactDOM from 'react-dom';
-
-import '~/css/main.scss'
-
-
 import Sidebar from "./components/sidebar"
 import ContactPanel from './components/contactPanel'
 import ChatPanel from './components/chatPanel'
+
+import '~/css/main.scss'
+
 const element = (
     <div className="chat-container">
         <Sidebar></Sidebar>

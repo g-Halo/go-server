@@ -1,7 +1,7 @@
 import React from 'react'
-import Header from './contactPanel/header'
-import Search from './contactPanel/search'
-import List from './contactPanel/list'
+import Header from './contact-panel/header'
+import Search from './contact-panel/search'
+import List from './contact-panel/list'
 class ContactPanel extends React.Component {
     render() {
         const e = (

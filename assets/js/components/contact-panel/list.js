@@ -1,5 +1,5 @@
 import React from 'react'
-import '~/css/contactPanel/list.scss'
+import '~/css/contact-panel.scss'
 
 class List extends React.Component {
     constructor(props) {
