@@ -1,6 +1,7 @@
 package server
 
 import (
+	ctx "context"
 	"fmt"
 	"github.com/yigger/go-server/conf"
 	"github.com/yigger/go-server/http_api"
@@ -9,9 +10,9 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"net"
+	"net/http"
 	"sync"
 	"time"
-	ctx "context"
 )
 
 type ChatS struct {
@@ -19,7 +20,7 @@ type ChatS struct {
 	clientIDSequence 		int64
 	conf 				 	*conf.Config
 
-	clients 			 	map[int64]*client
+	clients 			 	map[string]*client
 	rooms				 	map[string]*room
 
 	sync.RWMutex
@@ -35,7 +36,7 @@ type ChatS struct {
 func NewChatS(conf *conf.Config) (chat *ChatS, err error) {
 	chat = &ChatS{
 		startTime: time.Now(),
-		clients: make(map[int64]*client),
+		clients: make(map[string]*client),
 		rooms: make(map[string]*room),
 		conf: conf,
 	}
@@ -54,14 +55,18 @@ func NewChatS(conf *conf.Config) (chat *ChatS, err error) {
 	return
 }
 
-func (c *ChatS) AddClient(clientID int64, client *client) {
+func (c *ChatS) AddClient(clientID string, client *client) {
 	c.Lock()
 	c.clients[clientID] = client
 	c.Unlock()
 }
 
+func (s *httpServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	s.router.ServeHTTP(w, req)
+}
+
 func (s *ChatS) Main() error {
-	ctx := &context{s}
+	contxt := &context{s}
 	// 定义全局的 Once
 	var exitCh = make(chan error)
 	var once sync.Once
@@ -74,13 +79,13 @@ func (s *ChatS) Main() error {
 	// 为什么需要 tcpServer 呢？原因是可以统一处理多个不同的 tcp handle，比如 tcp/ip 或者是 http/https 的handle 都可以公用这个，传入相应的上下文就可以了
 	// 聊天的服务就传入 chat 的上下文
 	// web服务就传入 web 的上下文
-	tcpServer := &tcpServer{ctx: ctx}
+	tcpServer := &tcpServer{ctx: contxt}
 	s.waitGroup.Wrap(func() {
 		exitFunc(protocol.TCPServer(s.tcpListener, tcpServer))
 	})
 
 	// 初始化 http api 服务
-	httpServer := newHTTPServer(ctx)
+	httpServer := newHTTPServer(contxt)
 	s.waitGroup.Wrap(func() {
 		exitFunc(http_api.Serve(s.httpListener, httpServer, "HTTP"))
 	})

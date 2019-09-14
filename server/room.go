@@ -7,36 +7,36 @@ import (
 
 type room struct {
 	name	string
-	clients  map[int64]*client
+	clients  map[string]*client
 	messages []*message
-	messageChan map[int64]chan *message
+	messageChan map[string]chan *message
 	sync.Mutex
 }
 
 func NewRoom(roomName string) *room {
 	room := &room{
 		name: roomName,
-		clients: make(map[int64]*client),
+		clients: make(map[string]*client),
 		messages: make([]*message, 1000, 2000),
-		messageChan: make(map[int64](chan *message)),
+		messageChan: make(map[string](chan *message)),
 	}
 	return room
 }
 
 // 从 ChatS 中取，能取到就返回，不能取到则创建
-func (c *ChatS) GetOrCreateByRoom(roomName string) *room {
-	room, exist := c.rooms[roomName]
+func (s *ChatS) GetOrCreateByRoom(roomName string) *room {
+	room, exist := s.rooms[roomName]
 	if exist {
 		return room
 	}
 
-	c.Lock()
+	s.Lock()
 	room = NewRoom(roomName)
-	c.rooms[roomName] = room
-	c.Unlock()
+	s.rooms[roomName] = room
+	s.Unlock()
 
-	fmt.Println("Successful create the Chat room: ", roomName)
-	return c.rooms[roomName]
+	fmt.Println("Successful Create the Chat room: ", roomName)
+	return s.rooms[roomName]
 }
 
 func (r *room) AddClient(client *client) {

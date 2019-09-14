@@ -1,5 +1,6 @@
-import React from 'react';
-import ReactDOM from 'react-dom';
+import React from 'react'
+import ReactDOM from 'react-dom'
+
 import Sidebar from "./components/sidebar"
 import ContactPanel from './components/contactPanel'
 import ChatPanel from './components/chatPanel'

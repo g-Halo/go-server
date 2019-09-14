@@ -6,13 +6,19 @@ import (
 	"net"
 	"sync"
 	"time"
+
+	"github.com/gorilla/websocket"
 )
 
 const defaultBufferSize = 16 * 1024
 
 type client struct {
-	ID      int64
+	ID      string
+
+	sync.Mutex
+
 	net.Conn
+	wsConn *websocket.Conn
 
 	writeLock sync.RWMutex
 	metaLock  sync.RWMutex
@@ -21,15 +27,17 @@ type client struct {
 	Reader *bufio.Reader
 	Writer *bufio.Writer
 
-	// re-usable buffer for reading the 4-byte lengths off the wire
 	lenBuf   [4]byte
 	lenSlice []byte
 
 	rooms     []*room
 	ClientID string
+
+	// 上下文，一般情况下是 *Chats
+	ctx *context
 }
 
-func newClient(id int64, conn net.Conn, ctx *context) *client {
+func newClient(id string, conn net.Conn, ctx *context) *client {
 	var identifier string
 	if conn != nil {
 		identifier, _, _ = net.SplitHostPort(conn.RemoteAddr().String())
@@ -42,17 +50,19 @@ func newClient(id int64, conn net.Conn, ctx *context) *client {
 		Writer: bufio.NewWriterSize(conn, defaultBufferSize),
 		ClientID: identifier,
 		rooms: make([]*room, 100),
+		ctx: ctx,
 	}
 	c.lenSlice = c.lenBuf[:]
 	return c
 }
 
+func (c *client) addWebSocket(conn *websocket.Conn) {
+	c.Lock()
+	c.wsConn = conn
+	c.Unlock()
+}
+
 func (c *client) close() {
-	//for _, room := range c.rooms {
-	//	if _, ok := room.messageChan[c.ID]; ok {
-	//		close(room.messageChan[c.ID])
-	//	}
-	//}
 	c.Conn.Close()
 	c.Close()
 }

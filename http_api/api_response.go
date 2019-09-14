@@ -1,6 +1,7 @@
 package http_api
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/julienschmidt/httprouter"
 	"github.com/yigger/go-server/model"
@@ -42,6 +43,14 @@ func PlainText(f APIHandler) APIHandler {
 		case []byte:
 			w.WriteHeader(code)
 			w.Write(d)
+		case map[string]interface{}:
+			data, err := json.Marshal(data)
+			if err != nil {
+				panic(fmt.Sprintf("response json %T", data))
+			}
+			w.WriteHeader(code)
+			w.Header().Set("Content-Type", "application/json; charset=utf-8")
+			w.Write([]byte(string(data)))
 		default:
 			panic(fmt.Sprintf("unknown response type %T", data))
 		}
@@ -49,7 +58,7 @@ func PlainText(f APIHandler) APIHandler {
 	}
 }
 
-func MiddlewareHandler(mdFunc func(string) (*model.User, bool), fn func(http.ResponseWriter, *http.Request, string)) http.HandlerFunc {
+func MiddlewareHandler(mdFunc func(string) (*model.User, bool), fn func(http.ResponseWriter, *http.Request, *model.User)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		token := r.Header["Token"][0]
 		user, _ := mdFunc(token)
@@ -57,7 +66,7 @@ func MiddlewareHandler(mdFunc func(string) (*model.User, bool), fn func(http.Res
 			w.WriteHeader(401)
 			w.Write([]byte("401 Unauthorized"))
 		} else {
-			fn(w, r, "")
+			fn(w, r, user)
 		}
 	}
 }

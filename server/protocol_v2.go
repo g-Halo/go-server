@@ -40,7 +40,7 @@ func (p *protocolV2) IOLoop(conn net.Conn) error {
 
 	// 为客户端注册并保存到内存
 	clientID := atomic.AddInt64(&p.ctx.chatS.clientIDSequence, 1)
-	client := newClient(clientID, conn, p.ctx)
+	client := newClient(string(clientID), conn, p.ctx)
 	p.ctx.chatS.AddClient(client.ID, client)
 	fmt.Println("local ClientID is:", client.ID)
 
