@@ -3,8 +3,10 @@ package model
 import (
 	"context"
 	"encoding/hex"
+	"encoding/json"
 	"errors"
 	"github.com/yigger/go-server/util"
+	"log"
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/bson"
@@ -14,11 +16,13 @@ import (
 )
 
 type User struct {
-	Username string `json:"username"`
-	Salt	 string `json:"salt"`
-	Password string	`json:"password"`
-	NickName string	`json:"nickname"`
-	CreatedAt time.Time `json:"created_at"`
+	Username 			string 		`json:"username"`
+	Salt	 			string 		`json:"salt"`
+	Password 			string		`json:"password"`
+	NickName 			string		`json:"nickname"`
+	LastChatAt 			time.Time 	`json:"last_chat_at"`
+	LastChatMessage 	string 		`json:"last_chat_message"`
+	CreatedAt 			time.Time 	`json:"created_at"`
 }
 
 func (u User) Login(client *mongo.Client, username, password string) (string, error) {
@@ -47,7 +51,8 @@ func (u User) Login(client *mongo.Client, username, password string) (string, er
 }
 
 // 注册用户
-func (User) SignUp(client *mongo.Client, nickname, username, password string) error {
+func (User) SignUp(client *mongo.Client, params map[string]interface{}) error {
+	//nickname, username, password string
 	// 生成随机 salt
 	rand := func (n int) string {
 		var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
@@ -62,15 +67,21 @@ func (User) SignUp(client *mongo.Client, nickname, username, password string) er
 	m5 := md5.New()
 	salt := rand(8)
 	m5.Write([]byte(salt))
-	m5.Write([]byte(string(password)))
+	m5.Write([]byte(params["password"].(string)))
 	st := m5.Sum(nil)
-	user := &User{
-		Username: username,
-		Salt: salt,
-		Password: hex.EncodeToString(st),
-		NickName: nickname,
-		CreatedAt: time.Now(),
+
+	jsonString, _ := json.Marshal(params)
+
+	var user User
+	if err := json.Unmarshal(jsonString, &user); err != nil {
+		log.Fatal("json Unmarshal fail")
 	}
+
+	user.Password = hex.EncodeToString(st)
+	user.Salt = salt
+	user.LastChatAt = time.Now()
+	user.CreatedAt = time.Now()
+
 	collection := client.Database("chat").Collection("users")
 	_, err := collection.InsertOne(context.TODO(), user)
 	if err != nil {
@@ -89,4 +100,27 @@ func (User) FindByUsername(client *mongo.Client, filter bson.M) (User, error) {
 		return user, err
 	}
 	return user, nil
+}
+
+func (User) FindAll(client *mongo.Client) []*User {
+	var users []*User
+	collection := client.Database("chat").Collection("users")
+	cur, err := collection.Find(context.TODO(), bson.D{{}})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	for cur.Next(context.TODO()) {
+		var user User
+		err := cur.Decode(&user)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		users = append(users, &user)
+	}
+
+	cur.Close(context.TODO())
+
+	return users
 }

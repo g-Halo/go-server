@@ -60,7 +60,7 @@ func PlainText(f APIHandler) APIHandler {
 
 func MiddlewareHandler(mdFunc func(string) (*model.User, bool), fn func(http.ResponseWriter, *http.Request, *model.User)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		token := r.Header["Token"][0]
+		token := r.Header.Get("token")
 		user, _ := mdFunc(token)
 		if user == nil {
 			w.WriteHeader(401)

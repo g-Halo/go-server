@@ -6,6 +6,7 @@ import (
 )
 
 type Config struct {
+	Env 			string  `json:"env"`
 	TcpAddress 		string	`json:"tcp_address"`
 	HttpAddress 	string	`json:"http_address"`
 	MongoDbAddress 	string	`json:"mongodb_address"`

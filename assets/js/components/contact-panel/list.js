@@ -1,4 +1,5 @@
 import React from 'react'
+import { Get } from 'react-axios'
 import '~/css/contact-panel.scss'
 
 class List extends React.Component {
@@ -23,31 +24,42 @@ class List extends React.Component {
     
     onSwitchUser(user) {
         this.setState({
-            activeUserId: user.id
+            activeUserId: user.username
         })
     }
 
     render() {
-        const userInfo = this.state.users.map((user) =>
-            <div
-                key={user.id}
-                className={`contact-panel__user ${this.state.activeUserId === user.id ? 'active' : ''}`}
-                onClick={this.onSwitchUser.bind(this, user)}
-            >
-                <div className="user-avatar">
-                    <img src="/public/images/avatar-example.jpg" />
-                </div>
-                <div className="contact-panel-user__info">
-                    <div className="user__header">
-                        <span className="user__name">{user.name}</span>
-                        <span className="text-gray fs12">{user.time}</span>
-                    </div>
-                    <div className="user__desc">
-                        <span className="text-gray message-desc">{user.desc}</span>
-                        { user.unread > 0 ? (<span className="unread-circle">{user.unread}</span>) : '' }
-                    </div>
-                </div>
-            </div>
+        const userInfo = (
+            <Get url="/v1/contacts">
+                {(error, response) => {
+                   if (response !== null) {
+                       const users = response.data
+                       return users.map((user) =>
+                            <div
+                                key={user.username}
+                                className={`contact-panel__user ${this.state.activeUserId === user.id ? 'active' : ''}`}
+                                onClick={this.onSwitchUser.bind(this, user)}
+                            >
+                                <div className="user-avatar">
+                                    <img src="/public/images/avatar-example.jpg" />
+                                </div>
+                                <div className="contact-panel-user__info">
+                                    <div className="user__header">
+                                        <span className="user__name">{user.nickname}</span>
+                                        <span className="text-gray fs12">{user.last_chat_at}</span>
+                                    </div>
+                                    <div className="user__desc">
+                                        <span className="text-gray message-desc">{user.desc}</span>
+                                        { user.unread > 0 ? (<span className="unread-circle">{user.unread}</span>) : '' }
+                                    </div>
+                                </div>
+                            </div>
+                        )
+                   } else {
+                       return (<div>Get Error</div>)
+                   }
+                }}
+            </Get>
         )
 
         return (
