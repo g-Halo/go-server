@@ -20,9 +20,8 @@ type User struct {
 	Salt	 			string 		`json:"salt"`
 	Password 			string		`json:"password"`
 	NickName 			string		`json:"nickname"`
-	LastChatAt 			time.Time 	`json:"last_chat_at"`
-	LastChatMessage 	string 		`json:"last_chat_message"`
 	CreatedAt 			time.Time 	`json:"created_at"`
+	LastMessage			*Message	`json:"last_message"`
 }
 
 func (u User) Login(client *mongo.Client, username, password string) (string, error) {
@@ -79,7 +78,6 @@ func (User) SignUp(client *mongo.Client, params map[string]interface{}) error {
 
 	user.Password = hex.EncodeToString(st)
 	user.Salt = salt
-	user.LastChatAt = time.Now()
 	user.CreatedAt = time.Now()
 
 	collection := client.Database("chat").Collection("users")

@@ -1,6 +1,9 @@
 import React from 'react'
 import { Get } from 'react-axios'
+
 import '~/css/contact-panel.scss'
+
+import moment from 'moment'
 
 class List extends React.Component {
     constructor(props) {
@@ -46,10 +49,10 @@ class List extends React.Component {
                                 <div className="contact-panel-user__info">
                                     <div className="user__header">
                                         <span className="user__name">{user.nickname}</span>
-                                        <span className="text-gray fs12">{user.last_chat_at}</span>
+                                        <span className="text-gray fs12">{moment(user.last_message.created_at).format("hh:mm")}</span>
                                     </div>
                                     <div className="user__desc">
-                                        <span className="text-gray message-desc">{user.desc}</span>
+                                        <span className="text-gray message-desc">{user.last_message.body}</span>
                                         { user.unread > 0 ? (<span className="unread-circle">{user.unread}</span>) : '' }
                                     </div>
                                 </div>
