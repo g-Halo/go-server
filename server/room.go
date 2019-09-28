@@ -47,4 +47,5 @@ func (r *room) AddClient(client *client) {
 
 func (r *room) AddMessage(message *message) {
 	r.messages = append(r.messages, message)
+
 }
