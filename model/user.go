@@ -20,6 +20,7 @@ type User struct {
 	Salt	 			string 		`json:"salt"`
 	Password 			string		`json:"password"`
 	NickName 			string		`json:"nickname"`
+	Rooms				[]*Room		`json:"rooms"`
 	CreatedAt 			time.Time 	`json:"created_at"`
 	LastMessage			*Message	`json:"last_message"`
 }
@@ -121,4 +122,20 @@ func (User) FindAll(client *mongo.Client) []*User {
 	cur.Close(context.TODO())
 
 	return users
+}
+
+func (u *User) AddRoom(client *mongo.Client, room *Room) {
+	u.Rooms = append(u.Rooms, room)
+	filter := bson.D{{"username", u.Username}}
+	update := bson.D{
+		{"$set", bson.D{
+			{"rooms", u.Rooms},
+		}},
+	}
+
+	collection := client.Database("chat").Collection("users")
+	_, err := collection.UpdateOne(context.TODO(), filter, update)
+	if err != nil {
+		log.Fatal(err)
+	}
 }

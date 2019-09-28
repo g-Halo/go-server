@@ -40,7 +40,7 @@ class List extends React.Component {
                        return users.map((user) =>
                             <div
                                 key={user.username}
-                                className={`contact-panel__user ${this.state.activeUserId === user.id ? 'active' : ''}`}
+                                className={`contact-panel__user ${this.state.activeUserId === user.username ? 'active' : ''}`}
                                 onClick={this.onSwitchUser.bind(this, user)}
                             >
                                 <div className="user-avatar">

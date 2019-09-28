@@ -17,7 +17,7 @@ func NewRoom(roomName string) *room {
 	room := &room{
 		name: roomName,
 		clients: make(map[string]*client),
-		messages: make([]*message, 1000, 2000),
+		messages: make([]*message, 10),
 		messageChan: make(map[string](chan *message)),
 	}
 	return room

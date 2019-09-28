@@ -39,5 +39,6 @@ func newHTTPServer(ctx *context) *httpServer {
 	// websocket 连接入口
 	router.HandlerFunc("GET", "/ws", http_api.MiddlewareHandler(server.ValidateToken, server.WebSocketConnect))
 
+	router.HandlerFunc("POST", "/v1/create_chat", http_api.MiddlewareHandler(server.ValidateToken, server.CreateChat))
 	return server
 }
