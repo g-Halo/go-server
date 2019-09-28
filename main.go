@@ -1,11 +1,16 @@
 package main
 
 import (
-	"fmt"
 	"github.com/yigger/go-server/conf"
+	"github.com/yigger/go-server/logger"
 	"github.com/yigger/go-server/server"
+	"log"
 	"os"
 )
+
+func init() {
+	logger.InitLogger("./application.log", "debug")
+}
 
 func main() {
 	config := conf.LoadConf()
@@ -16,7 +21,7 @@ func main() {
 
 	err = chatServer.Main()
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 		os.Exit(1)
 	}
 }
