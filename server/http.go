@@ -7,7 +7,7 @@ import (
 )
 
 type httpServer struct {
-	ctx *context
+	ctx    *context
 	router http.Handler
 }
 
@@ -16,29 +16,23 @@ func newHTTPServer(ctx *context) *httpServer {
 	router.HandleMethodNotAllowed = true
 
 	server := &httpServer{
-		ctx: ctx,
+		ctx:    ctx,
 		router: router,
 	}
-
-	// 静态资源
-	router.ServeFiles("/public/*filepath", http.Dir("/Users/yigger/Projects/go-server/public"))
-	// 主入口 html
-	router.Handle("GET", "/", http_api.RenderTemplate("home"))
-
-
-	// --------- 下面的都是 API 请求接口 --------------
 
 	// 登录/注册
 	router.Handle("POST", "/sign", http_api.Decorate(server.signHandler, http_api.PlainText))
 	router.Handle("POST", "/login", http_api.Decorate(server.loginHandler, http_api.PlainText))
 
-	// 含有中间件的 Api 方法，需要进行校验 token
-	router.HandlerFunc("POST", "/v1/create_room", http_api.MiddlewareHandler(server.ValidateToken, server.CreateRoom))
+	// 获取联系人列表
 	router.HandlerFunc("GET", "/v1/contacts", http_api.MiddlewareHandler(server.ValidateToken, server.GetContacts))
+	// 获取与其它用户聊天的历史消息
+	router.HandlerFunc("GET", "/v1/contact", http_api.MiddlewareHandler(server.ValidateToken, server.GetContact))
+	// 发送消息给指定用户
+	router.HandlerFunc("POST", "/v1/create_chat", http_api.MiddlewareHandler(server.ValidateToken, server.CreateChat))
+
 
 	// websocket 连接入口
 	router.HandlerFunc("GET", "/ws", http_api.MiddlewareHandler(server.ValidateToken, server.WebSocketConnect))
-
-	router.HandlerFunc("POST", "/v1/create_chat", http_api.MiddlewareHandler(server.ValidateToken, server.CreateChat))
 	return server
 }

@@ -12,7 +12,7 @@ var wsGrader = websocket.Upgrader{
 	WriteBufferSize: 2048,
 }
 
-func (s *httpServer) WebSocketConnect(w http.ResponseWriter, req *http.Request, user *model.User) {
+func (s *httpServer) WebSocketConnect(w http.ResponseWriter, req *http.Request, user *model.User) (interface{}, error)  {
 	conn, _ := wsGrader.Upgrade(w, req, nil)
 
 	chatServer := s.ctx.chatS
@@ -20,7 +20,8 @@ func (s *httpServer) WebSocketConnect(w http.ResponseWriter, req *http.Request, 
 	tcpListen := chatServer.tcpListener
 	tcpConnect, err := tcpListen.Accept()
 	if err != nil {
-		panic("error in connect to tcp")
+		logger.Error("error in connect to tcp")
+		return "fail to connect tcp address", nil
 	}
 
 	var client *client
@@ -38,6 +39,8 @@ func (s *httpServer) WebSocketConnect(w http.ResponseWriter, req *http.Request, 
 	client.addWebSocket(conn)
 	go s.wsRead(client)
 	go s.wsWrite(client)
+
+	return "OK", nil
 }
 
 func (s *httpServer) wsRead(client *client) {

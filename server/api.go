@@ -7,7 +7,6 @@ import (
 	uuid "github.com/satori/go.uuid"
 	"github.com/yigger/go-server/model"
 	"github.com/yigger/go-server/util"
-	"go.mongodb.org/mongo-driver/bson"
 	"log"
 	"time"
 
@@ -23,8 +22,7 @@ func (s *httpServer) ValidateToken(tokenString string) (*model.User, bool) {
 	if s.ctx.chatS.conf.Env == "development" {
 		// 测试用户的 username
 		testUsername := "test-1"
-		client := s.ctx.chatS.mongoClient
-		user, _ := User.FindByUsername(client, bson.M{"username": testUsername})
+		user, _ := User.FindByUsername(testUsername)
 		if user.Username == "" {
 			log.Fatal("validate token: invalid user")
 		} else {
@@ -38,8 +36,7 @@ func (s *httpServer) ValidateToken(tokenString string) (*model.User, bool) {
 
 	if claims, ok := token.Claims.(*util.MyCustomClaims); ok && token.Valid {
 
-		client := s.ctx.chatS.mongoClient
-		user, _ := User.FindByUsername(client, bson.M{"username": claims.Username})
+		user, _ := User.FindByUsername(claims.Username)
 		return &user, true
 	} else {
 		return nil, false
@@ -65,8 +62,7 @@ func (s *httpServer) signHandler(w http.ResponseWriter, req *http.Request, ps ht
 	}
 
 	var user model.User
-	client := s.ctx.chatS.mongoClient
-	if _, err := user.FindByUsername(client, bson.M{"username": req.URL.Query().Get("username")}); err == nil {
+	if _, err := user.FindByUsername(req.URL.Query().Get("username")); err == nil {
 		return "当前用户已被注册", nil
 	}
 
@@ -75,7 +71,7 @@ func (s *httpServer) signHandler(w http.ResponseWriter, req *http.Request, ps ht
 		"username": req.URL.Query().Get("username"),
 		"password": req.URL.Query().Get("password"),
 	}
-	if err := user.SignUp(client, params); err != nil {
+	if err := user.SignUp(params); err != nil {
 		return "注册失败", nil
 	}
 
@@ -90,27 +86,31 @@ func (s *httpServer) loginHandler(w http.ResponseWriter, req *http.Request, ps h
 	}
 
 	var user model.User
-	client := s.ctx.chatS.mongoClient
-	token, err := user.Login(client, reqParams.Get("username"), reqParams.Get("password"))
+	token, err := user.Login(reqParams.Get("username"), reqParams.Get("password"))
 
 	return token, err
 }
 
-func (s *httpServer) CreateRoom(w http.ResponseWriter, r *http.Request, user *model.User) {
-
-}
-
-func (s *httpServer) GetContacts(w http.ResponseWriter, req *http.Request, user *model.User) {
+func (s *httpServer) GetContacts(w http.ResponseWriter, req *http.Request, currentUser *model.User) (interface{}, error) {
 	var User model.User
-	client := s.ctx.chatS.mongoClient
-	users := User.FindAll(client)
+	users := User.FindAll()
 	data, _ := json.Marshal(users)
-	w.Header().Set("content-type", "application/json")
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Write(data)
+
+	return data, nil
 }
 
-func (s *httpServer) CreateChat(w http.ResponseWriter, req *http.Request, user *model.User) {
+func (s *httpServer) GetContact(w http.ResponseWriter, req *http.Request, currentUser *model.User) (interface{}, error) {
+	username := req.URL.Query().Get("username")
+	if username == "" {
+		return "无效的用户", nil
+	}
+
+	//var User model.User
+	//User.FindByUsername(username)
+	return nil, nil
+}
+
+func (s *httpServer) CreateChat(w http.ResponseWriter, req *http.Request, currentUser *model.User) (interface{}, error) {
 	// 1. 从 form-data 获取 username，如果有 room_id 则也一起传过来
 	// TODO: 先校验收发端是否好友
 	// 2. 校验聊天用户的有效性
@@ -125,12 +125,10 @@ func (s *httpServer) CreateChat(w http.ResponseWriter, req *http.Request, user *
 
 	chatS := s.ctx.chatS
 
-	mgClient := chatS.mongoClient
-	queryFilter := bson.M{"username": username}
-	targetUser, _ := User.FindByUsername(mgClient, queryFilter)
+	targetUser, _ := User.FindByUsername(username)
 	if targetUser.Username == "" {
-		w.Write([]byte("无效的用户" + username))
-		return
+		err := "无效的用户" + username
+		return err, nil
 	}
 
 	room := &room{}
@@ -139,9 +137,9 @@ func (s *httpServer) CreateChat(w http.ResponseWriter, req *http.Request, user *
 		room = chatS.rooms[roomId]
 	} else {
 		// 先在用户已有的房间列表查找是否有符合的房间
-		userArray := []string{user.Username, targetUser.Username}
+		userArray := []string{currentUser.Username, targetUser.Username}
 		mroom := new(model.Room)
-		for _, r := range user.Rooms {
+		for _, r := range currentUser.Rooms {
 			if r.Type == "p2p" && len(r.Members) == 2 {
 				if (r.Members[0] == userArray[0] || r.Members[0] == userArray[1]) || (r.Members[1] == userArray[0] || r.Members[1] == userArray[1]) {
 					log.Println("find the exist room")
@@ -155,17 +153,17 @@ func (s *httpServer) CreateChat(w http.ResponseWriter, req *http.Request, user *
 		uid := uuid.NewV4()
 		if mroom.UUID == "" {
 			mroom = &model.Room{
-				UUID: uid.String(),
-				Type: "p2p",
-				Members: []string{targetUser.Username, user.Username},
+				UUID:      uid.String(),
+				Type:      "p2p",
+				Members:   []string{targetUser.Username, currentUser.Username},
 				CreatedAt: time.Now(),
 			}
 			// insert room to db
-			mroom.Create(mgClient)
+			mroom.Create()
 			// room add members
-			mroom.AddMembers(mgClient, userArray)
+			mroom.AddMembers(userArray)
 			// 把 room 加入到 user 的 rooms. user.AddRoom()
-			user.AddRoom(mgClient, mroom)
+			currentUser.AddRoom(mroom)
 		}
 
 		// 以上都是 DB 操作，主要是为了备份，防止服务挂掉重启后什么都没了
@@ -175,7 +173,7 @@ func (s *httpServer) CreateChat(w http.ResponseWriter, req *http.Request, user *
 	}
 
 	// 获取到当前正在连接的用户 Client
-	client := chatS.clients[user.Username]
+	client := chatS.clients[currentUser.Username]
 
 	// 创建 message 信息
 	message := NewMessage(client, content)
@@ -184,6 +182,5 @@ func (s *httpServer) CreateChat(w http.ResponseWriter, req *http.Request, user *
 	room.AddMessage(message)
 
 	// 因为对方已经订阅了 room 的频道，所以对方应该是可以收到的
-
-	w.Write([]byte("OK"))
+	return "OK", nil
 }

@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/julienschmidt/httprouter"
+	"github.com/yigger/go-server/logger"
 	"github.com/yigger/go-server/model"
 	"io"
 	"net/http"
-	"text/template"
 )
 
 
@@ -58,7 +58,7 @@ func PlainText(f APIHandler) APIHandler {
 	}
 }
 
-func MiddlewareHandler(mdFunc func(string) (*model.User, bool), fn func(http.ResponseWriter, *http.Request, *model.User)) http.HandlerFunc {
+func MiddlewareHandler(mdFunc func(string) (*model.User, bool), fn func(http.ResponseWriter, *http.Request, *model.User) (interface{}, error)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		token := r.Header.Get("token")
 		user, _ := mdFunc(token)
@@ -66,15 +66,32 @@ func MiddlewareHandler(mdFunc func(string) (*model.User, bool), fn func(http.Res
 			w.WriteHeader(401)
 			w.Write([]byte("401 Unauthorized"))
 		} else {
-			fn(w, r, user)
+			// common setting
+			w.Header().Set("content-type", "application/json")
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+			w.WriteHeader(200)
+			// 从回调函数获取 data
+			data, err := fn(w, r, user)
+
+			if err != nil {
+				data = err.Error()
+			}
+
+			switch d := data.(type) {
+			case string:
+				io.WriteString(w, d)
+			case []byte:
+				w.Write(d)
+			case map[string]interface{}:
+				data, err := json.Marshal(data)
+				if err != nil {
+					logger.Errorf("response json %T", data)
+				}
+				w.Write([]byte(string(data)))
+			default:
+				logger.Errorf("unknown response type %T", data)
+			}
 		}
 	}
 }
 
-func RenderTemplate(tmpl string) httprouter.Handle {
-	return func(w http.ResponseWriter, req *http.Request, ps httprouter.Params) {
-		filename := "views/" + tmpl + ".html"
-		templ := template.Must(template.ParseFiles(filename))
-		_ = templ.Execute(w, "")
-	}
-}

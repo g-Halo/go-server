@@ -8,9 +8,8 @@ import (
 	"github.com/yigger/go-server/util"
 	"log"
 
-	"go.mongodb.org/mongo-driver/mongo"
-	"go.mongodb.org/mongo-driver/bson"
 	"crypto/md5"
+	"go.mongodb.org/mongo-driver/bson"
 	"math/rand"
 	"time"
 )
@@ -25,9 +24,8 @@ type User struct {
 	LastMessage			*Message	`json:"last_message"`
 }
 
-func (u User) Login(client *mongo.Client, username, password string) (string, error) {
-	queryFilter := bson.M{"username": username}
-	user, err := u.FindByUsername(client, queryFilter)
+func (u User) Login(username, password string) (string, error) {
+	user, err := u.FindByUsername(username)
 	if err != nil {
 		return "", errors.New("用户名或密码错误 - 0")
 	}
@@ -51,7 +49,7 @@ func (u User) Login(client *mongo.Client, username, password string) (string, er
 }
 
 // 注册用户
-func (User) SignUp(client *mongo.Client, params map[string]interface{}) error {
+func (User) SignUp(params map[string]interface{}) error {
 	//nickname, username, password string
 	// 生成随机 salt
 	rand := func (n int) string {
@@ -81,7 +79,7 @@ func (User) SignUp(client *mongo.Client, params map[string]interface{}) error {
 	user.Salt = salt
 	user.CreatedAt = time.Now()
 
-	collection := client.Database("chat").Collection("users")
+	collection := Collection("users")
 	_, err := collection.InsertOne(context.TODO(), user)
 	if err != nil {
 		return err
@@ -90,9 +88,11 @@ func (User) SignUp(client *mongo.Client, params map[string]interface{}) error {
 }
 
 
-func (User) FindByUsername(client *mongo.Client, filter bson.M) (User, error) {
+func (User) FindByUsername(username string) (User, error) {
 	var user User
-	collection := client.Database("chat").Collection("users")
+	collection := Collection("users")
+
+	filter := bson.M{"username": username}
 	documentReturned := collection.FindOne(context.TODO(), filter)
 	err := documentReturned.Decode(&user)
 	if err != nil {
@@ -101,9 +101,9 @@ func (User) FindByUsername(client *mongo.Client, filter bson.M) (User, error) {
 	return user, nil
 }
 
-func (User) FindAll(client *mongo.Client) []*User {
+func (User) FindAll() []*User {
 	var users []*User
-	collection := client.Database("chat").Collection("users")
+	collection := Collection("users")
 	cur, err := collection.Find(context.TODO(), bson.D{{}})
 	if err != nil {
 		log.Fatal(err)
@@ -124,7 +124,7 @@ func (User) FindAll(client *mongo.Client) []*User {
 	return users
 }
 
-func (u *User) AddRoom(client *mongo.Client, room *Room) {
+func (u *User) AddRoom(room *Room) {
 	u.Rooms = append(u.Rooms, room)
 	filter := bson.D{{"username", u.Username}}
 	update := bson.D{
@@ -133,7 +133,7 @@ func (u *User) AddRoom(client *mongo.Client, room *Room) {
 		}},
 	}
 
-	collection := client.Database("chat").Collection("users")
+	collection := Collection("users")
 	_, err := collection.UpdateOne(context.TODO(), filter, update)
 	if err != nil {
 		log.Fatal(err)
