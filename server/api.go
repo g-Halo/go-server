@@ -5,6 +5,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 	"github.com/julienschmidt/httprouter"
 	uuid "github.com/satori/go.uuid"
+	"github.com/yigger/go-server/logger"
 	"github.com/yigger/go-server/model"
 	"github.com/yigger/go-server/util"
 	"log"
@@ -18,7 +19,7 @@ import (
 func (s *httpServer) ValidateToken(tokenString string) (*model.User, bool) {
 	var User model.User
 
-	// 测试环境不校验 jwt
+	// FIXME: 测试环境不校验 jwt
 	if s.ctx.chatS.conf.Env == "development" {
 		// 测试用户的 username
 		testUsername := "test-1"
@@ -26,7 +27,7 @@ func (s *httpServer) ValidateToken(tokenString string) (*model.User, bool) {
 		if user.Username == "" {
 			log.Fatal("validate token: invalid user")
 		} else {
-			return &user, true
+			return user, true
 		}
 	}
 
@@ -35,9 +36,8 @@ func (s *httpServer) ValidateToken(tokenString string) (*model.User, bool) {
 	})
 
 	if claims, ok := token.Claims.(*util.MyCustomClaims); ok && token.Valid {
-
 		user, _ := User.FindByUsername(claims.Username)
-		return &user, true
+		return user, true
 	} else {
 		return nil, false
 	}
@@ -91,23 +91,47 @@ func (s *httpServer) loginHandler(w http.ResponseWriter, req *http.Request, ps h
 	return token, err
 }
 
+// 获取联系人列表
 func (s *httpServer) GetContacts(w http.ResponseWriter, req *http.Request, currentUser *model.User) (interface{}, error) {
 	var User model.User
 	users := User.FindAll()
 	data, _ := json.Marshal(users)
-
 	return data, nil
 }
 
+// 获取与某用户的聊天信息
 func (s *httpServer) GetContact(w http.ResponseWriter, req *http.Request, currentUser *model.User) (interface{}, error) {
 	username := req.URL.Query().Get("username")
 	if username == "" {
 		return "无效的用户", nil
 	}
 
-	//var User model.User
-	//User.FindByUsername(username)
-	return nil, nil
+	var User model.User
+	user, err := User.FindByUsername(username)
+	if err != nil {
+		return nil, err
+	}
+
+	// 获取他们之间的聊天消息内容
+	// 1. 获取他们之间的房间号
+	room := currentUser.FindP2PRoom(user.Username)
+	if room == nil {
+		return "empty", nil
+	}
+
+	// 2. 从 DB 拉取历史聊天记录
+	var data []map[string]interface{}
+	for _, msg := range room.Messages {
+		data = append(data, map[string]interface{}{
+			"recipient": msg.Recipient,
+			"sender": msg.Sender,
+			"body": msg.Body,
+			"created_at": msg.CreatedAt,
+			"status": "check",
+		})
+	}
+
+	return data, nil
 }
 
 func (s *httpServer) CreateChat(w http.ResponseWriter, req *http.Request, currentUser *model.User) (interface{}, error) {
@@ -132,54 +156,55 @@ func (s *httpServer) CreateChat(w http.ResponseWriter, req *http.Request, curren
 	}
 
 	room := &room{}
+	db_room := &model.Room{}
+
 	if len(roomId) != 0 {
 		// 有房间 Id
 		room = chatS.rooms[roomId]
 	} else {
 		// 先在用户已有的房间列表查找是否有符合的房间
 		userArray := []string{currentUser.Username, targetUser.Username}
-		mroom := new(model.Room)
-		for _, r := range currentUser.Rooms {
-			if r.Type == "p2p" && len(r.Members) == 2 {
-				if (r.Members[0] == userArray[0] || r.Members[0] == userArray[1]) || (r.Members[1] == userArray[0] || r.Members[1] == userArray[1]) {
-					log.Println("find the exist room")
-					mroom = r
-					break
-				}
-			}
+		p2pRoom := currentUser.FindP2PRoom(targetUser.Username)
+		if p2pRoom != nil {
+			db_room = p2pRoom
 		}
 
 		// 如果没有的话，则创建 room
 		uid := uuid.NewV4()
-		if mroom.UUID == "" {
-			mroom = &model.Room{
+		logger.Info(db_room)
+		if db_room.UUID == "" {
+			db_room = &model.Room{
 				UUID:      uid.String(),
 				Type:      "p2p",
 				Members:   []string{targetUser.Username, currentUser.Username},
 				CreatedAt: time.Now(),
 			}
 			// insert room to db
-			mroom.Create()
+			logger.Info("start to create room to db")
+			db_room.Create()
 			// room add members
-			mroom.AddMembers(userArray)
+			db_room.AddMembers(userArray)
 			// 把 room 加入到 user 的 rooms. user.AddRoom()
-			currentUser.AddRoom(mroom)
+			currentUser.AddRoom(db_room)
 		}
 
 		// 以上都是 DB 操作，主要是为了备份，防止服务挂掉重启后什么都没了
 
 		// 这里是在内存中创建唯一的房间号，此处与 db 的 room 一一对应
-		room = chatS.GetOrCreateByRoom(mroom.UUID)
+		room = chatS.GetOrCreateByRoom(db_room.UUID)
 	}
 
 	// 获取到当前正在连接的用户 Client
 	client := chatS.clients[currentUser.Username]
 
 	// 创建 message 信息
+	var Message model.Message
 	message := NewMessage(client, content)
+	db_message := Message.Create(currentUser, targetUser, content)
 
 	// 往房间里面扔消息
 	room.AddMessage(message)
+	db_room.AddMessage(db_message)
 
 	// 因为对方已经订阅了 room 的频道，所以对方应该是可以收到的
 	return "OK", nil

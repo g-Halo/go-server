@@ -1,6 +1,10 @@
 package model
 
-import "time"
+import (
+	"github.com/yigger/go-server/logger"
+	"time"
+	"context"
+)
 
 type Message struct {
 	SenderId		int			`json:"send_id"`
@@ -12,13 +16,20 @@ type Message struct {
 	Status			string		`json:"status"`
 }
 
-func (m Message) Create(sender string, recipient string, body string) *Message {
+func (Message) Create(sender *User, recipient *User, body string) *Message {
 	message := &Message{
-		Sender: sender,
-		Recipient: recipient,
+		Sender: sender.Username,
+		Recipient: recipient.Username,
 		Body: body,
 		CreatedAt: time.Now(),
 		Status: "uncheck",
+	}
+
+	collection := Collection("messages")
+	_, err := collection.InsertOne(context.TODO(), message)
+	if err != nil {
+		logger.Error(err)
+		return nil
 	}
 
 	return message

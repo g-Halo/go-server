@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"github.com/yigger/go-server/logger"
 	"github.com/yigger/go-server/util"
 	"log"
 
@@ -88,7 +89,7 @@ func (User) SignUp(params map[string]interface{}) error {
 }
 
 
-func (User) FindByUsername(username string) (User, error) {
+func (User) FindByUsername(username string) (*User, error) {
 	var user User
 	collection := Collection("users")
 
@@ -96,9 +97,14 @@ func (User) FindByUsername(username string) (User, error) {
 	documentReturned := collection.FindOne(context.TODO(), filter)
 	err := documentReturned.Decode(&user)
 	if err != nil {
-		return user, err
+		return nil, err
 	}
-	return user, nil
+
+	if user.Username == "" {
+		return nil, errors.New("User Not Found")
+	}
+
+	return &user, nil
 }
 
 func (User) FindAll() []*User {
@@ -137,5 +143,34 @@ func (u *User) AddRoom(room *Room) {
 	_, err := collection.UpdateOne(context.TODO(), filter, update)
 	if err != nil {
 		log.Fatal(err)
+	}
+}
+
+func (u *User) FindP2PRoom(username string) *Room {
+	userArray := []string{u.Username, username}
+	room := &Room{}
+	for _, r := range u.Rooms {
+		if r.Type == "p2p" && len(r.Members) == 2 {
+			if (r.Members[0] == userArray[0] || r.Members[0] == userArray[1]) || (r.Members[1] == userArray[0] || r.Members[1] == userArray[1]) {
+				room = r
+				break
+			}
+		}
+	}
+
+	// FIXME: 有可能 room 仅在 user 集合中存在，但在 Room Collection 不存在
+
+	if room.UUID == "" {
+		return nil
+	} else {
+		filter := bson.M{"uuid": room.UUID}
+		documentReturned := Collection("rooms").FindOne(context.TODO(), filter)
+		err := documentReturned.Decode(&room)
+		if err != nil {
+			logger.Error(err)
+			return nil
+		}
+
+		return room
 	}
 }

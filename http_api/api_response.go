@@ -89,7 +89,10 @@ func MiddlewareHandler(mdFunc func(string) (*model.User, bool), fn func(http.Res
 				}
 				w.Write([]byte(string(data)))
 			default:
+				data, _ := json.Marshal(data)
+				w.Write(data)
 				logger.Errorf("unknown response type %T", data)
+
 			}
 		}
 	}

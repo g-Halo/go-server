@@ -2,7 +2,6 @@ package model
 
 import (
 	"context"
-	"fmt"
 	"github.com/yigger/go-server/logger"
 	"go.mongodb.org/mongo-driver/bson"
 	"time"
@@ -14,6 +13,7 @@ type Room struct {
 	Members				[]string	`json:"members"`
 	Type				string      `json:"type"`
 	CreatedAt 			time.Time 	`json:"created_at"`
+	Messages			[]*Message	`json:"messages"`
 }
 
 func (r *Room) Create() {
@@ -26,7 +26,6 @@ func (r *Room) Create() {
 
 func (r *Room) AddMembers(members []string) {
 	filter := bson.D{{"uuid", r.UUID}}
-	fmt.Println(members)
 
 	update := bson.D{
 		{"$set", bson.D{
@@ -34,6 +33,25 @@ func (r *Room) AddMembers(members []string) {
 		}},
 	}
 
+	collection := Collection("rooms")
+	_, err := collection.UpdateOne(context.TODO(), filter, update)
+	if err != nil {
+		logger.Error(err)
+	}
+}
+
+func (r *Room) AddMessage(message *Message) {
+	if message == nil {
+		logger.Error("message is null")
+		return
+	}
+
+	filter := bson.D{{"uuid", r.UUID}}
+	update := bson.D{
+		{"$push", bson.D{
+			{"messages", message},
+		}},
+	}
 	collection := Collection("rooms")
 	_, err := collection.UpdateOne(context.TODO(), filter, update)
 	if err != nil {
