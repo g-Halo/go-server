@@ -91,7 +91,7 @@ func (s *httpServer) loginHandler(w http.ResponseWriter, req *http.Request, ps h
 
 	var user model.User
 	client := s.ctx.chatS.mongoClient
-	token, err := user.Login(client, reqParams["username"][0], reqParams["password"][0])
+	token, err := user.Login(client, reqParams.Get("username"), reqParams.Get("password"))
 
 	return token, err
 }
@@ -106,6 +106,7 @@ func (s *httpServer) GetContacts(w http.ResponseWriter, req *http.Request, user 
 	users := User.FindAll(client)
 	data, _ := json.Marshal(users)
 	w.Header().Set("content-type", "application/json")
+	w.Header().Set("Access-Control-Allow-Origin", "*")
 	w.Write(data)
 }
 
@@ -182,7 +183,6 @@ func (s *httpServer) CreateChat(w http.ResponseWriter, req *http.Request, user *
 	// 往房间里面扔消息
 	room.AddMessage(message)
 
-	log.Println(room.messages)
 	// 因为对方已经订阅了 room 的频道，所以对方应该是可以收到的
 
 	w.Write([]byte("OK"))

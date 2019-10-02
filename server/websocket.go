@@ -2,6 +2,7 @@ package server
 
 import (
 	"github.com/gorilla/websocket"
+	"github.com/yigger/go-server/logger"
 	"github.com/yigger/go-server/model"
 	"net/http"
 )
@@ -22,12 +23,21 @@ func (s *httpServer) WebSocketConnect(w http.ResponseWriter, req *http.Request, 
 		panic("error in connect to tcp")
 	}
 
-	// 把当前连接的客户端添加进聊天服务
-	client := newClient(user.Username, tcpConnect, s.ctx)
-	chatServer.AddClient(client.ID, client)
-	client.addWebSocket(conn)
+	var client *client
+	for _, c := range chatServer.clients {
+		if c.ID == user.Username {
+			client = c
+		}
+	}
 
+	if client == nil || client.ID == "" {
+		client = newClient(user.Username, tcpConnect, s.ctx)
+		chatServer.AddClient(client.ID, client)
+	}
+
+	client.addWebSocket(conn)
 	go s.wsRead(client)
+	go s.wsWrite(client)
 }
 
 func (s *httpServer) wsRead(client *client) {
@@ -38,7 +48,20 @@ func (s *httpServer) wsRead(client *client) {
 			return
 		}
 
-		// 往 room 写数据
-		//fmt.Println(string(message))
+	}
+}
+
+func (s *httpServer) wsWrite(client *client) {
+	conn := client.wsConn
+	for {
+		for _, room := range client.rooms {
+			msg := <- room.messageChan[client.ID]
+
+			w, err := conn.NextWriter(websocket.TextMessage)
+			if err != nil {
+				logger.Error(err)
+			}
+			w.Write([]byte(msg.content))
+		}
 	}
 }

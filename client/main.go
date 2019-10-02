@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"flag"
 	"github.com/gorilla/websocket"
+	"github.com/yigger/go-server/logger"
 	"log"
 	"net/http"
+	"net/url"
 	"time"
 )
 
@@ -181,10 +183,19 @@ func (c *Client) writePump() {
 
 // serveWs handles websocket requests from the peer.
 func serveWs(hub *Hub, w http.ResponseWriter, r *http.Request) {
+	// 1. 连接 tcp 端口
+	// 2. 通过 jwt token 从 tcp 端口中订阅用户的消息
+	// 3. 接受 tcp 发送过来的消息，通过 ws 通知客户端
+	reqParams, _ := url.ParseQuery(r.URL.RawQuery)
+	token := reqParams.Get("token")
+	if token == "" {
+		logger.Warn("token not found")
+	}
+	// 发送 token 给 tcp
+
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Println(err)
-		return
+		logger.Warn(err)
 	}
 	client := &Client{hub: hub, conn: conn, send: make(chan []byte, 256)}
 	client.hub.register <- client

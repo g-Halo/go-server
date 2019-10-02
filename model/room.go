@@ -3,9 +3,9 @@ package model
 import (
 	"context"
 	"fmt"
-	"go.mongodb.org/mongo-driver/mongo"
+	"github.com/yigger/go-server/logger"
 	"go.mongodb.org/mongo-driver/bson"
-	"log"
+	"go.mongodb.org/mongo-driver/mongo"
 	"time"
 )
 
@@ -21,8 +21,7 @@ func (r *Room) Create(client *mongo.Client) {
 	collection := client.Database("chat").Collection("rooms")
 	_, err := collection.InsertOne(context.TODO(), r)
 	if err != nil {
-		fmt.Println("err", err)
-		log.Fatal(err)
+		logger.Error(err)
 	}
 }
 
@@ -39,6 +38,6 @@ func (r *Room) AddMembers(client *mongo.Client, members []string) {
 	collection := client.Database("chat").Collection("rooms")
 	_, err := collection.UpdateOne(context.TODO(), filter, update)
 	if err != nil {
-		log.Println(err)
+		logger.Error(err)
 	}
 }
