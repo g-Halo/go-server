@@ -31,28 +31,25 @@ func Decorate(f APIHandler, ds ...Decorator) httprouter.Handle {
 
 func PlainText(f APIHandler) APIHandler {
 	return func(w http.ResponseWriter, req *http.Request, ps httprouter.Params) (interface{}, error) {
-		code := 200
+		w.Header().Set("Content-Type", "application/json; charset=utf-8")
 		data, err := f(w, req, ps)
 		if err != nil {
-			data = err.Error()
+			logger.Error(err)
 		}
+
 		switch d := data.(type) {
 		case string:
-			w.WriteHeader(code)
 			io.WriteString(w, d)
 		case []byte:
-			w.WriteHeader(code)
 			w.Write(d)
 		case map[string]interface{}:
 			data, err := json.Marshal(data)
 			if err != nil {
-				panic(fmt.Sprintf("response json %T", data))
+				logger.Error(fmt.Sprintf("response json %T", data))
 			}
-			w.WriteHeader(code)
-			w.Header().Set("Content-Type", "application/json; charset=utf-8")
-			w.Write([]byte(string(data)))
+			w.Write(data)
 		default:
-			panic(fmt.Sprintf("unknown response type %T", data))
+			logger.Error(fmt.Sprintf("unknown response type %T", data))
 		}
 		return nil, nil
 	}
@@ -60,15 +57,13 @@ func PlainText(f APIHandler) APIHandler {
 
 func MiddlewareHandler(mdFunc func(string) (*model.User, bool), fn func(http.ResponseWriter, *http.Request, *model.User) (interface{}, error)) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
 		token := r.Header.Get("token")
 		user, _ := mdFunc(token)
 		if user == nil {
 			w.WriteHeader(401)
 			w.Write([]byte("401 Unauthorized"))
 		} else {
-			// common setting
-			w.Header().Set("content-type", "application/json")
-			w.Header().Set("Access-Control-Allow-Origin", "*")
 			w.WriteHeader(200)
 			// 从回调函数获取 data
 			data, err := fn(w, r, user)
@@ -83,11 +78,12 @@ func MiddlewareHandler(mdFunc func(string) (*model.User, bool), fn func(http.Res
 			case []byte:
 				w.Write(d)
 			case map[string]interface{}:
-				data, err := json.Marshal(data)
-				if err != nil {
-					logger.Errorf("response json %T", data)
-				}
-				w.Write([]byte(string(data)))
+				//data, err := json.Marshal(data)
+				json.NewEncoder(w).Encode(data)
+				//if err != nil {
+				//	logger.Errorf("response json %T", data)
+				//}
+				//w.Write(data)
 			default:
 				data, _ := json.Marshal(data)
 				w.Write(data)

@@ -8,27 +8,48 @@ import (
 	"github.com/yigger/go-server/logger"
 	"github.com/yigger/go-server/model"
 	"github.com/yigger/go-server/util"
-	"log"
 	"time"
 
 	"net/http"
 	"net/url"
 )
 
+type loginParams struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+func renderSuccess(data interface{}) (res map[string]interface{}) {
+	return map[string]interface{}{
+		"status": 200,
+		"data": data,
+	}
+}
+
+func renderError(err string) (res map[string]interface{}) {
+	return map[string]interface{}{
+		"status": 400,
+		"error": err,
+	}
+}
+
 // 中间件方法，用于校验 jwt 的合法性
 func (s *httpServer) ValidateToken(tokenString string) (*model.User, bool) {
 	var User model.User
 
 	// FIXME: 测试环境不校验 jwt
-	if s.ctx.chatS.conf.Env == "development" {
-		// 测试用户的 username
-		testUsername := "test-1"
-		user, _ := User.FindByUsername(testUsername)
-		if user.Username == "" {
-			log.Fatal("validate token: invalid user")
-		} else {
-			return user, true
-		}
+	//if s.ctx.chatS.conf.Env == "development" {
+	//	// 测试用户的 username
+	//	testUsername := "test-1"
+	//	user, _ := User.FindByUsername(testUsername)
+	//	if user.Username == "" {
+	//		logger.Error("validate token: invalid user")
+	//	} else {
+	//		return user, true
+	//	}
+	//}
+	if tokenString == "" {
+		return nil, false
 	}
 
 	token, _ := jwt.ParseWithClaims(tokenString, &util.MyCustomClaims{}, func(token *jwt.Token) (interface{}, error) {
@@ -58,12 +79,12 @@ func validateParams(params url.Values, keys []string) bool {
 func (s *httpServer) signHandler(w http.ResponseWriter, req *http.Request, ps httprouter.Params) (interface{}, error) {
 	// 校验字符串
 	if !validateParams(req.URL.Query(), []string{"username", "password", "nickname"}) {
-		return "参数校验错误，请检查", nil
+		return renderError("参数校验错误，请检查"), nil
 	}
 
 	var user model.User
 	if _, err := user.FindByUsername(req.URL.Query().Get("username")); err == nil {
-		return "当前用户已被注册", nil
+		return renderError("当前用户已被注册"), nil
 	}
 
 	params := map[string]interface{}{
@@ -72,38 +93,46 @@ func (s *httpServer) signHandler(w http.ResponseWriter, req *http.Request, ps ht
 		"password": req.URL.Query().Get("password"),
 	}
 	if err := user.SignUp(params); err != nil {
-		return "注册失败", nil
+		return renderError("注册失败"), nil
 	}
 
-	return "OK", nil
+	return renderSuccess("OK"), nil
 }
 
 // 登录
 func (s *httpServer) loginHandler(w http.ResponseWriter, req *http.Request, ps httprouter.Params) (interface{}, error) {
-	reqParams, _ := url.ParseQuery(req.URL.RawQuery)
-	if !validateParams(reqParams, []string{"username", "password"}) {
-		return "参数校验错误，请检查", nil
+	var params loginParams
+	err := json.NewDecoder(req.Body).Decode(&params)
+	if err != nil {
+		return renderError("参数有误"), err
 	}
 
-	var user model.User
-	token, err := user.Login(reqParams.Get("username"), reqParams.Get("password"))
-
-	return token, err
+	var User model.User
+	if token, err := User.Login(params.Username, params.Password); err != nil {
+		return renderError(err.Error()), nil
+	} else {
+		user, _ := User.FindByUsername(params.Username)
+		uJson := user.ToJson()
+		res := map[string]interface{}{
+			"user": uJson,
+			"token": token,
+		}
+		return renderSuccess(res), nil
+	}
 }
 
 // 获取联系人列表
 func (s *httpServer) GetContacts(w http.ResponseWriter, req *http.Request, currentUser *model.User) (interface{}, error) {
 	var User model.User
 	users := User.FindAll()
-	data, _ := json.Marshal(users)
-	return data, nil
+	return renderSuccess(users), nil
 }
 
 // 获取与某用户的聊天信息
 func (s *httpServer) GetContact(w http.ResponseWriter, req *http.Request, currentUser *model.User) (interface{}, error) {
 	username := req.URL.Query().Get("username")
 	if username == "" {
-		return "无效的用户", nil
+		return renderError("无效的用户"), nil
 	}
 
 	var User model.User
@@ -116,13 +145,13 @@ func (s *httpServer) GetContact(w http.ResponseWriter, req *http.Request, curren
 	// 1. 获取他们之间的房间号
 	room := currentUser.FindP2PRoom(user.Username)
 	if room == nil {
-		return "empty", nil
+		return renderError("empty"), nil
 	}
 
 	// 2. 从 DB 拉取历史聊天记录
-	var data []map[string]interface{}
+	var chatData []map[string]interface{}
 	for _, msg := range room.Messages {
-		data = append(data, map[string]interface{}{
+		chatData = append(chatData, map[string]interface{}{
 			"recipient": msg.Recipient,
 			"sender": msg.Sender,
 			"body": msg.Body,
@@ -131,7 +160,12 @@ func (s *httpServer) GetContact(w http.ResponseWriter, req *http.Request, curren
 		})
 	}
 
-	return data, nil
+	data := map[string]interface{}{
+		"user": user,
+		"messages": chatData,
+	}
+
+	return renderSuccess(data), nil
 }
 
 func (s *httpServer) CreateChat(w http.ResponseWriter, req *http.Request, currentUser *model.User) (interface{}, error) {
@@ -152,7 +186,7 @@ func (s *httpServer) CreateChat(w http.ResponseWriter, req *http.Request, curren
 	targetUser, _ := User.FindByUsername(username)
 	if targetUser.Username == "" {
 		err := "无效的用户" + username
-		return err, nil
+		return renderError(err), nil
 	}
 
 	room := &room{}
@@ -207,5 +241,5 @@ func (s *httpServer) CreateChat(w http.ResponseWriter, req *http.Request, curren
 	db_room.AddMessage(db_message)
 
 	// 因为对方已经订阅了 room 的频道，所以对方应该是可以收到的
-	return "OK", nil
+	return renderSuccess("OK"), nil
 }

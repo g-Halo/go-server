@@ -21,8 +21,8 @@ func newHTTPServer(ctx *context) *httpServer {
 	}
 
 	// 登录/注册
-	router.Handle("POST", "/sign", http_api.Decorate(server.signHandler, http_api.PlainText))
-	router.Handle("POST", "/login", http_api.Decorate(server.loginHandler, http_api.PlainText))
+	router.Handle("POST", "/v1/sign", http_api.Decorate(server.signHandler, http_api.PlainText))
+	router.Handle("POST", "/v1/login", http_api.Decorate(server.loginHandler, http_api.PlainText))
 
 	// 获取联系人列表
 	router.HandlerFunc("GET", "/v1/contacts", http_api.MiddlewareHandler(server.ValidateToken, server.GetContacts))

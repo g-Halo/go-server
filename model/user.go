@@ -28,7 +28,7 @@ type User struct {
 func (u User) Login(username, password string) (string, error) {
 	user, err := u.FindByUsername(username)
 	if err != nil {
-		return "", errors.New("用户名或密码错误 - 0")
+		return "", errors.New("用户名不存在")
 	}
 
 	// 密码加盐校验
@@ -38,7 +38,7 @@ func (u User) Login(username, password string) (string, error) {
 	m5.Write([]byte(string(password)))
 	st := m5.Sum(nil)
 	if hex.EncodeToString(st) != user.Password {
-		return "", errors.New("用户名或密码错误 - 1")
+		return "", errors.New("用户名或密码错误")
 	}
 
 	// 生成 JWT token
@@ -172,5 +172,12 @@ func (u *User) FindP2PRoom(username string) *Room {
 		}
 
 		return room
+	}
+}
+
+func (u *User) ToJson() (map[string]interface{}) {
+	return map[string]interface{}{
+		"username": u.Username,
+		"nickname": u.NickName,
 	}
 }
