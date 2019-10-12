@@ -1,11 +1,10 @@
 package protocol
 
 import (
-	"fmt"
+	"github.com/yigger/go-server/logger"
 	"net"
 	"runtime"
 	"strings"
-
 )
 
 // 定义抽象的接口，使用 tcpServer 的都需要实现这个接口
@@ -25,7 +24,7 @@ func TCPServer(listener net.Listener, handler TCPHandler) error {
 			}
 			// theres no direct way to detect this error because it is not exposed
 			if !strings.Contains(err.Error(), "use of closed network connection") {
-				return fmt.Errorf("listener.Accept() error - %s", err)
+				logger.Fatalf("listener.Accept() error - %s", err)
 			}
 			break
 		}

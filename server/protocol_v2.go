@@ -3,6 +3,7 @@ package server
 import (
 	"bytes"
 	"fmt"
+	"github.com/yigger/go-server/logger"
 	"io"
 	"net"
 	"sync/atomic"
@@ -30,7 +31,7 @@ func (p *protocolV2) heartBeat(client *client) {
 		}
 	}
 exit:
-	fmt.Printf("客户端 %d 已退出连接\n", client.ID)
+	logger.Warnf("客户端 %d 已退出连接\n", client.ID)
 	client.close()
 }
 
@@ -42,7 +43,6 @@ func (p *protocolV2) IOLoop(conn net.Conn) error {
 	clientID := atomic.AddInt64(&p.ctx.chatS.clientIDSequence, 1)
 	client := newClient(string(clientID), conn, p.ctx)
 	p.ctx.chatS.AddClient(client.ID, client)
-	fmt.Println("local ClientID is:", client.ID)
 
 	// 注册心跳包
 	go p.heartBeat(client)
@@ -92,49 +92,49 @@ func (p *protocolV2) Login(client *client, params [][]byte) {
 }
 
 func (p *protocolV2) CreateRoom(client *client, params [][]byte) {
-	if len(params) < 2 {
-		fmt.Println("无效的协议")
-		return
-	}
+	//if len(params) < 2 {
+	//	fmt.Println("无效的协议")
+	//	return
+	//}
+	//
+	//// 房间名
+	//roomName := string(params[1])
+	//if len(roomName) < 1 || len(roomName) > 255 {
+	//	fmt.Println("房间名字符数仅允许 1 - 255 个字符")
+	//	return
+	//}
 
-	// 房间名
-	roomName := string(params[1])
-	if len(roomName) < 1 || len(roomName) > 255 {
-		fmt.Println("房间名字符数仅允许 1 - 255 个字符")
-		return
-	}
-
-	room := p.ctx.chatS.GetOrCreateByRoom(roomName)
-	// 房间记录当前连接数
-	room.AddClient(client)
-
-	// 订阅房间消息，不断从房间的内容中读取消息，并返回给用户
-	go client.SubRoom(room)
+	//room := p.ctx.chatS.GetOrCreateByRoom(roomName)
+	//// 房间记录当前连接数
+	//room.AddClient(client)
+	//
+	//// 订阅房间消息，不断从房间的内容中读取消息，并返回给用户
+	//go client.SubRoom(room)
 }
 
 func (p *protocolV2) SendMessage(client *client, params [][]byte) {
-	if len(params) < 3 {
-		fmt.Println("无效的协议")
-		return
-	}
-
-	roomName := string(params[1])
-	if len(roomName) < 1 || len(roomName) > 255 {
-		fmt.Println("房间名字符数仅允许 1 - 255 个字符")
-		return
-	}
-
-	room := p.ctx.chatS.GetOrCreateByRoom(roomName)
-	// 房间记录当前连接数
-	room.AddClient(client)
-
-	// 订阅房间消息，不断从房间的内容中读取消息，并返回给用户
-	go client.SubRoom(room)
-
-	// send message body
-	messageBody := string(params[2])
-	message := NewMessage(client, messageBody)
-	client.SendMessage(room, message)
+	//if len(params) < 3 {
+	//	fmt.Println("无效的协议")
+	//	return
+	//}
+	//
+	//roomName := string(params[1])
+	//if len(roomName) < 1 || len(roomName) > 255 {
+	//	fmt.Println("房间名字符数仅允许 1 - 255 个字符")
+	//	return
+	//}
+	//
+	//room := p.ctx.chatS.GetOrCreateByRoom(roomName)
+	//// 房间记录当前连接数
+	//room.AddClient(client)
+	//
+	//// 订阅房间消息，不断从房间的内容中读取消息，并返回给用户
+	//go client.SubRoom(room)
+	//
+	//// send message body
+	//messageBody := string(params[2])
+	//message := NewMessage(client, messageBody)
+	//client.SendMessage(room, message)
 }
 
 func (p *protocolV2) handleHeartBeat(client *client) error {

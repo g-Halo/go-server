@@ -58,8 +58,8 @@ func newClient(id string, conn net.Conn, ctx *context) *client {
 
 func (c *client) addWebSocket(conn *websocket.Conn) {
 	c.Lock()
+	defer c.Unlock()
 	c.wsConn = conn
-	c.Unlock()
 }
 
 func (c *client) close() {

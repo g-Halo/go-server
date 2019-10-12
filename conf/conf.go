@@ -11,6 +11,7 @@ type Config struct {
 	HttpAddress 	string	`json:"http_address"`
 	MongoDbAddress 	string	`json:"mongodb_address"`
 	SecretKey 		string 	`json:"secret_key"`
+	DB				string  `json:"db"`
 }
 
 const configPath = "config.json"
@@ -31,4 +32,9 @@ func LoadConf() *Config {
 	}
 
 	return Conf
+}
+
+// 无 db，可以不指定 db，那么所有数据就存储在内存
+func (c *Config) No_db() bool {
+	return c.DB == ""
 }

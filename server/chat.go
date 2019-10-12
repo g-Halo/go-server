@@ -2,9 +2,10 @@ package server
 
 import (
 	ctx "context"
-	"fmt"
 	"github.com/yigger/go-server/conf"
 	"github.com/yigger/go-server/http_api"
+	"github.com/yigger/go-server/logger"
+	"github.com/yigger/go-server/model"
 	"github.com/yigger/go-server/protocol"
 	"github.com/yigger/go-server/util"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -21,7 +22,8 @@ type ChatS struct {
 	conf 				 	*conf.Config
 
 	clients 			 	map[string]*client
-	rooms				 	map[string]*room
+	rooms				 	map[string]*model.Room
+	users					map[string]*model.User
 
 	sync.RWMutex
 	waitGroup            	util.WaitGroupWrapper
@@ -33,32 +35,39 @@ type ChatS struct {
 	startTime			 	time.Time
 }
 
-func NewChatS(conf *conf.Config) (chat *ChatS, err error) {
+func NewChatS(config *conf.Config) (chat *ChatS, err error) {
 	chat = &ChatS{
 		startTime: time.Now(),
 		clients: make(map[string]*client),
-		rooms: make(map[string]*room),
-		conf: conf,
+		rooms: make(map[string]*model.Room),
+		users: make(map[string]*model.User),
+		conf: config,
 	}
-	fmt.Printf("Start listening Tcp %s ...\n", conf.TcpAddress)
-	chat.tcpListener, err = net.Listen("tcp", conf.TcpAddress)
+
+	logger.Infof("Start to listening Tcp %s ...\n", config.TcpAddress)
+	chat.tcpListener, err = net.Listen("tcp", config.TcpAddress)
 
 	// 初始化 http servers
-	fmt.Printf("Start listening Http %s ...\n", conf.HttpAddress)
-	chat.httpListener, err = net.Listen("tcp", conf.HttpAddress)
+	logger.Infof("Start to listening Http %s ...\n", config.HttpAddress)
+	chat.httpListener, err = net.Listen("tcp", config.HttpAddress)
 
-	// 初始化 mongodb 的 client
-	clientOptions := options.Client().ApplyURI(conf.MongoDbAddress)
-	mongoClient, err := mongo.Connect(ctx.TODO(), clientOptions)
-	chat.mongoClient = mongoClient
+	if config.No_db() {
+		// 初始化 mongodb 的 client
+		clientOptions := options.Client().ApplyURI(config.MongoDbAddress)
+		mongoClient, err := mongo.Connect(ctx.TODO(), clientOptions)
+		if err != nil {
+			logger.Fatal("mongo client error:", err)
+		}
+		chat.mongoClient = mongoClient
+	}
 
 	return
 }
 
 func (c *ChatS) AddClient(clientID string, client *client) {
 	c.Lock()
+	defer c.Unlock()
 	c.clients[clientID] = client
-	c.Unlock()
 }
 
 func (s *httpServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {

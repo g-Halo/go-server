@@ -3,6 +3,7 @@ package server
 import (
 	"github.com/julienschmidt/httprouter"
 	"github.com/yigger/go-server/http_api"
+	"github.com/yigger/go-server/conf"
 	"net/http"
 )
 
@@ -35,4 +36,8 @@ func newHTTPServer(ctx *context) *httpServer {
 	// websocket 连接入口
 	router.HandlerFunc("GET", "/ws", http_api.MiddlewareHandler(server.ValidateToken, server.WebSocketConnect))
 	return server
+}
+
+func (h *httpServer) conf() *conf.Config {
+	return h.ctx.chatS.conf
 }

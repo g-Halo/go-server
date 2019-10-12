@@ -107,17 +107,23 @@ func (s *httpServer) loginHandler(w http.ResponseWriter, req *http.Request, ps h
 		return renderError("参数有误"), err
 	}
 
-	var User model.User
-	if token, err := User.Login(params.Username, params.Password); err != nil {
-		return renderError(err.Error()), nil
+	if s.conf().No_db() {
+		client := s.ctx.chatS.clients[params.Username]
+
+		return client, nil
 	} else {
-		user, _ := User.FindByUsername(params.Username)
-		uJson := user.ToJson()
-		res := map[string]interface{}{
-			"user": uJson,
-			"token": token,
+		var User model.User
+		if token, err := User.Login(params.Username, params.Password); err != nil {
+			return renderError(err.Error()), nil
+		} else {
+			user, _ := User.FindByUsername(params.Username)
+			uJson := user.ToJson()
+			res := map[string]interface{}{
+				"user": uJson,
+				"token": token,
+			}
+			return renderSuccess(res), nil
 		}
-		return renderSuccess(res), nil
 	}
 }
 
@@ -189,9 +195,7 @@ func (s *httpServer) CreateChat(w http.ResponseWriter, req *http.Request, curren
 		return renderError(err), nil
 	}
 
-	room := &room{}
-	db_room := &model.Room{}
-
+	room := &model.Room{}
 	if len(roomId) != 0 {
 		// 有房间 Id
 		room = chatS.rooms[roomId]
@@ -200,27 +204,31 @@ func (s *httpServer) CreateChat(w http.ResponseWriter, req *http.Request, curren
 		userArray := []string{currentUser.Username, targetUser.Username}
 		p2pRoom := currentUser.FindP2PRoom(targetUser.Username)
 		if p2pRoom != nil {
-			db_room = p2pRoom
+			room = p2pRoom
+		}
+
+		if room.UUID == "" {
+			chatS.NewRoom()
 		}
 
 		// 如果没有的话，则创建 room
-		uid := uuid.NewV4()
-		logger.Info(db_room)
-		if db_room.UUID == "" {
-			db_room = &model.Room{
-				UUID:      uid.String(),
-				Type:      "p2p",
-				Members:   []string{targetUser.Username, currentUser.Username},
-				CreatedAt: time.Now(),
-			}
-			// insert room to db
-			logger.Info("start to create room to db")
-			db_room.Create()
-			// room add members
-			db_room.AddMembers(userArray)
-			// 把 room 加入到 user 的 rooms. user.AddRoom()
-			currentUser.AddRoom(db_room)
-		}
+		//uid := uuid.NewV4()
+		//logger.Info(db_room)
+		//if db_room.UUID == "" {
+		//	db_room = &model.Room{
+		//		UUID:      uid.String(),
+		//		Type:      "p2p",
+		//		Members:   []string{targetUser.Username, currentUser.Username},
+		//		CreatedAt: time.Now(),
+		//	}
+		//	// insert room to db
+		//	logger.Info("start to create room to db")
+		//	db_room.Create()
+		//	// room add members
+		//	db_room.AddMembers(userArray)
+		//	// 把 room 加入到 user 的 rooms. user.AddRoom()
+		//	currentUser.AddRoom(db_room)
+		//}
 
 		// 以上都是 DB 操作，主要是为了备份，防止服务挂掉重启后什么都没了
 

@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"github.com/yigger/go-server/logger"
 	"github.com/yigger/go-server/util"
 	"log"
 
@@ -163,13 +162,14 @@ func (u *User) FindP2PRoom(username string) *Room {
 	if room.UUID == "" {
 		return nil
 	} else {
-		filter := bson.M{"uuid": room.UUID}
-		documentReturned := Collection("rooms").FindOne(context.TODO(), filter)
-		err := documentReturned.Decode(&room)
-		if err != nil {
-			logger.Error(err)
-			return nil
-		}
+		// FIXME: 有 DB 配置才使用
+		//filter := bson.M{"uuid": room.UUID}
+		//documentReturned := Collection("rooms").FindOne(context.TODO(), filter)
+		//err := documentReturned.Decode(&room)
+		//if err != nil {
+		//	logger.Error(err)
+		//	return nil
+		//}
 
 		return room
 	}

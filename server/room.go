@@ -1,8 +1,11 @@
 package server
 
 import (
+	uuid "github.com/satori/go.uuid"
 	"github.com/yigger/go-server/logger"
+	"github.com/yigger/go-server/model"
 	"sync"
+	"time"
 )
 
 type room struct {
@@ -13,18 +16,25 @@ type room struct {
 	sync.Mutex
 }
 
-func NewRoom(roomName string) *room {
-	room := &room{
-		name: roomName,
-		clients: make(map[string]*client),
-		messages: make([]*message, 0),
-		messageChan: make(map[string](chan *message)),
+func (s *ChatS) NewRoom(roomName string, members []string) *model.Room {
+	//room := &room{
+	//	name: roomName,
+	//	clients: make(map[string]*client),
+	//	messages: make([]*message, 0),
+	//	messageChan: make(map[string](chan *message)),
+	//}
+	uid := uuid.NewV4()
+	room := &model.Room{
+		UUID:      uid.String(),
+		Name:		roomName,
+		Type:      "p2p",
+		Members:   members,
+		CreatedAt: time.Now(),
 	}
 	return room
 }
 
-func (s *ChatS) FindRoomByName(roomName string) *room {
-	logger.Info(s.rooms)
+func (s *ChatS) FindRoomByName(roomName string) *model.Room {
 	if room, exist := s.rooms[roomName]; exist {
 		return room
 	} else {
@@ -33,7 +43,7 @@ func (s *ChatS) FindRoomByName(roomName string) *room {
 }
 
 // 从 ChatS 中取，能取到就返回，不能取到则创建
-func (s *ChatS) GetOrCreateByRoom(roomName string) *room {
+func (s *ChatS) GetOrCreateByRoom(roomName string) *model.Room {
 	room, exist := s.rooms[roomName]
 	if exist {
 		return room
