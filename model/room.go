@@ -2,7 +2,7 @@ package model
 
 import (
 	"context"
-	"github.com/yigger/go-server/logger"
+	"github.com/g-Halo/go-server/logger"
 	"go.mongodb.org/mongo-driver/bson"
 	"time"
 )
@@ -14,6 +14,15 @@ type Room struct {
 	Type				string      `json:"type"`
 	CreatedAt 			time.Time 	`json:"created_at"`
 	Messages			[]*Message	`json:"messages"`
+}
+
+func (Room) New(uuid string, members []string) *Room {
+	return &Room{
+		UUID: uuid,
+		Members: members,
+		Type: "p2p",
+		CreatedAt: time.Now(),
+	}
 }
 
 func (r *Room) Create() {
@@ -41,6 +50,7 @@ func (r *Room) AddMembers(members []string) {
 }
 
 func (r *Room) AddMessage(message *Message) {
+
 	if message == nil {
 		logger.Error("message is null")
 		return

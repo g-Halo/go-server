@@ -2,7 +2,7 @@ package util
 
 import (
 	"github.com/dgrijalva/jwt-go"
-	"github.com/yigger/go-server/conf"
+	"github.com/g-Halo/go-server/conf"
 	"time"
 )
 

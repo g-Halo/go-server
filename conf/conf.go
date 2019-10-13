@@ -34,6 +34,10 @@ func LoadConf() *Config {
 	return Conf
 }
 
+func No_db() bool {
+	return Conf.DB == ""
+}
+
 // 无 db，可以不指定 db，那么所有数据就存储在内存
 func (c *Config) No_db() bool {
 	return c.DB == ""

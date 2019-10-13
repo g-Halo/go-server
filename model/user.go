@@ -5,7 +5,8 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"github.com/yigger/go-server/util"
+	"github.com/g-Halo/go-server/logger"
+	"github.com/g-Halo/go-server/util"
 	"log"
 
 	"crypto/md5"
@@ -24,12 +25,7 @@ type User struct {
 	LastMessage			*Message	`json:"last_message"`
 }
 
-func (u User) Login(username, password string) (string, error) {
-	user, err := u.FindByUsername(username)
-	if err != nil {
-		return "", errors.New("用户名不存在")
-	}
-
+func (u User) Login(user *User, password string) (string, error) {
 	// 密码加盐校验
 	salt := user.Salt
 	m5 := md5.New()
@@ -48,9 +44,7 @@ func (u User) Login(username, password string) (string, error) {
 	return token, nil
 }
 
-// 注册用户
-func (User) SignUp(params map[string]interface{}) error {
-	//nickname, username, password string
+func (User) New(params map[string]interface{}) *User {
 	// 生成随机 salt
 	rand := func (n int) string {
 		var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
@@ -69,16 +63,21 @@ func (User) SignUp(params map[string]interface{}) error {
 	st := m5.Sum(nil)
 
 	jsonString, _ := json.Marshal(params)
-
-	var user User
+	user := &User{}
 	if err := json.Unmarshal(jsonString, &user); err != nil {
-		log.Fatal("json Unmarshal fail")
+		logger.Errorf("json Unmarshal fail: %s", jsonString)
+		return nil
 	}
 
 	user.Password = hex.EncodeToString(st)
 	user.Salt = salt
 	user.CreatedAt = time.Now()
 
+	return user
+}
+
+// 注册用户
+func (u User) Create(user *User) error {
 	collection := Collection("users")
 	_, err := collection.InsertOne(context.TODO(), user)
 	if err != nil {

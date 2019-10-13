@@ -3,7 +3,7 @@ package server
 import (
 	"bytes"
 	"fmt"
-	"github.com/yigger/go-server/logger"
+	"github.com/g-Halo/go-server/logger"
 	"io"
 	"net"
 	"sync/atomic"
@@ -18,7 +18,7 @@ type protocolV2 struct {
 }
 
 // 每 4 秒发送一个 __heartbeat__ 包给客户端
-func (p *protocolV2) heartBeat(client *client) {
+func (p *protocolV2) heartBeat(client *Client) {
 	heartbeatTicker := time.NewTicker(4 * time.Second)
 	heartbeatChan := heartbeatTicker.C
 	for {
@@ -40,7 +40,7 @@ func (p *protocolV2) IOLoop(conn net.Conn) error {
 	var line []byte
 
 	// 为客户端注册并保存到内存
-	clientID := atomic.AddInt64(&p.ctx.chatS.clientIDSequence, 1)
+	clientID := atomic.AddInt64(&p.ctx.chatS.ClientIDSequence, 1)
 	client := newClient(string(clientID), conn, p.ctx)
 	p.ctx.chatS.AddClient(client.ID, client)
 
@@ -75,7 +75,7 @@ func (p *protocolV2) IOLoop(conn net.Conn) error {
 	return err
 }
 
-func (p *protocolV2) Exec(client *client, params [][]byte) {
+func (p *protocolV2) Exec(client *Client, params [][]byte) {
 	switch {
 	case bytes.Equal(params[0], []byte("LOGIN")):
 		p.Login(client, params)
@@ -86,12 +86,12 @@ func (p *protocolV2) Exec(client *client, params [][]byte) {
 	}
 }
 
-func (p *protocolV2) Login(client *client, params [][]byte) {
+func (p *protocolV2) Login(client *Client, params [][]byte) {
 	messageBody := params[1]
 	fmt.Println(messageBody)
 }
 
-func (p *protocolV2) CreateRoom(client *client, params [][]byte) {
+func (p *protocolV2) CreateRoom(client *Client, params [][]byte) {
 	//if len(params) < 2 {
 	//	fmt.Println("无效的协议")
 	//	return
@@ -112,7 +112,7 @@ func (p *protocolV2) CreateRoom(client *client, params [][]byte) {
 	//go client.SubRoom(room)
 }
 
-func (p *protocolV2) SendMessage(client *client, params [][]byte) {
+func (p *protocolV2) SendMessage(client *Client, params [][]byte) {
 	//if len(params) < 3 {
 	//	fmt.Println("无效的协议")
 	//	return
@@ -137,7 +137,7 @@ func (p *protocolV2) SendMessage(client *client, params [][]byte) {
 	//client.SendMessage(room, message)
 }
 
-func (p *protocolV2) handleHeartBeat(client *client) error {
+func (p *protocolV2) handleHeartBeat(client *Client) error {
 	_, err := client.Write(heartbeatBytes)
 	return err
 }

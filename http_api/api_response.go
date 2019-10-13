@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/julienschmidt/httprouter"
-	"github.com/yigger/go-server/logger"
-	"github.com/yigger/go-server/model"
+	"github.com/g-Halo/go-server/logger"
+	"github.com/g-Halo/go-server/model"
 	"io"
 	"net/http"
 )

@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"flag"
 	"github.com/gorilla/websocket"
-	"github.com/yigger/go-server/logger"
+	"github.com/g-Halo/go-server/logger"
 	"log"
 	"net/http"
 	"net/url"

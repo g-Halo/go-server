@@ -1,4 +1,4 @@
-module github.com/yigger/go-server
+module github.com/g-Halo/go-server
 
 go 1.12
 

@@ -2,7 +2,8 @@ package server
 
 import (
 	"fmt"
-	"github.com/yigger/go-server/protocol"
+	"github.com/g-Halo/go-server/logger"
+	"github.com/g-Halo/go-server/protocol"
 	"io"
 	"net"
 )
@@ -23,12 +24,12 @@ func (p *tcpServer) Handle(conn net.Conn) {
 	case "  CHAT":
 		prot = &protocolV2{ctx: p.ctx}
 	default:
-		panic("Tcp: protocol fail")
+		logger.Fatal("Tcp: protocol fail")
 	}
 
 	err = prot.IOLoop(conn)
 	if err != nil {
-		fmt.Println(err)
+		logger.Error(err)
 	}
 
 }

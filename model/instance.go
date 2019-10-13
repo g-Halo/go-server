@@ -2,8 +2,8 @@ package model
 
 import (
 	"context"
-	"github.com/yigger/go-server/conf"
-	"github.com/yigger/go-server/logger"
+	"github.com/g-Halo/go-server/conf"
+	"github.com/g-Halo/go-server/logger"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )

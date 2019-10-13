@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/yigger/go-server/model"
+	"github.com/g-Halo/go-server/model"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 	"context"
