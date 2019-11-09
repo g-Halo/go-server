@@ -4,6 +4,7 @@ import (
 	"github.com/natefinch/lumberjack"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+	"os"
 )
 
 var Instance *zap.SugaredLogger
@@ -17,7 +18,6 @@ func InitLogger(logPath string, loglevel string) *zap.Logger {
 		Compress:   true,    // 是否压缩 disabled by default
 	}
 
-	w := zapcore.AddSync(&hook)
 	var level zapcore.Level
 	switch loglevel {
 	case "debug":
@@ -34,11 +34,15 @@ func InitLogger(logPath string, loglevel string) *zap.Logger {
 	encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 	core := zapcore.NewCore(
 		zapcore.NewConsoleEncoder(encoderConfig),
-		w,
+		zapcore.NewMultiWriteSyncer(zapcore.AddSync(os.Stdout), zapcore.AddSync(&hook)), // 打印到控制台和日志
 		level,
 	)
 
-	logger := zap.New(core)
+	// 开启开发模式，堆栈跟踪
+	caller := zap.AddCaller()
+	// 开启文件及行号
+	development := zap.Development()
+	logger := zap.New(core, caller, development)
 
 	// register to logger Instance
 	Instance = logger.Sugar()

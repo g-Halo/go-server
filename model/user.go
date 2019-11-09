@@ -174,7 +174,7 @@ func (u *User) FindP2PRoom(username string) *Room {
 	}
 }
 
-func (u *User) ToJson() (map[string]interface{}) {
+func (u *User) ToJson() map[string]interface{} {
 	return map[string]interface{}{
 		"username": u.Username,
 		"nickname": u.NickName,

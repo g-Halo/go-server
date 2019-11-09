@@ -1,74 +1,74 @@
-package logic
+package main
 
 import (
-	"errors"
-	"github.com/g-Halo/go-server/logger"
 	"github.com/g-Halo/go-server/model"
-	"github.com/g-Halo/go-server/server"
 	"sync"
 )
 
 type userLogic struct {
 	mutex *sync.Mutex
-	server *server.ChatS
 }
 
-var UserLogic = &userLogic{mutex: &sync.Mutex{}}
+//var UserLogic = &userLogic{mutex: &sync.Mutex{}}
 
-func (logic *userLogic) Register(server *server.ChatS) {
-	logic.server = server
-}
-
-func (logic *userLogic) Login(username, password string) (*model.User, string, error) {
-	var u model.User
-	user := logic.FindByUsername(username)
-	if user == nil {
-		return nil, "", errors.New("User Not Found")
-	}
-
-	token, err := u.Login(user, password)
-	if err != nil {
-		return nil, "", err
-	}
-
-	return user, token, err
-}
-
+//func (logic *userLogic) GetUsers() []map[string]interface{} {
+//	var data []map[string]interface{}
+//	for _, user := range logic.server.Users {
+//		data = append(data, map[string]interface{}{
+//			"username": user.Username,
+//			"nickname": user.NickName,
+//			"created_at": user.CreatedAt,
+//			"unread": "uncheck",
+//			"last_message": map[string]string{
+//				"body": "hello",
+//				"created_at": "2019-10-01 12:00:00",
+//			},
+//		})
+//	}
+//	return data
+//}
+//
+//func (logic *userLogic) Login(username, password string) (*model.User, string, error) {
+//	var u model.User
+//	user := logic.FindByUsername(username)
+//	if user == nil {
+//		return nil, "", errors.New("User Not Found")
+//	}
+//
+//	token, err := u.Login(user, password)
+//	if err != nil {
+//		return nil, "", err
+//	}
+//
+//	return user, token, err
+//}
+//
 func (logic *userLogic) SignUp(params map[string]interface{}) *model.User {
 	var u model.User
 	if params["username"] == "" {
 		return nil
 	}
 
-	if user := logic.FindByUsername(params["username"].(string)); user != nil {
+	user := &model.User{}
+	username := params["username"].(string)
+	if err := logic.FindByUsername(&username, user); err != nil {
+		return nil
+	}
+
+	if user.Username != "" {
 		return user
 	}
 
-	user := u.New(params)
-	if logic.server.Conf.No_db() {
-		return user
-	}
 
-	u.Create(user)
+	user = u.New(params)
 	return user
 }
 
-func (logic *userLogic) FindByUsername(username string) *model.User {
-	server := logic.server
-	if server.Conf.No_db() {
-		for _, user := range server.Users {
-			if user.Username == username {
-				return user
-			}
-		}
-	} else {
-		// find in db
-		var u model.User
-		user, err := u.FindByUsername(username)
-		if err != nil {
-			logger.Error(err)
-		} else {
-			return user
+func (logic *userLogic) FindByUsername(username *string, user *model.User) error {
+	for _, u := range sto.Users {
+		if u != nil && u.Username == *username {
+			*user = *u
+			return nil
 		}
 	}
 	return nil

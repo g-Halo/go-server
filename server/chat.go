@@ -2,6 +2,7 @@ package server
 
 import (
 	"github.com/g-Halo/go-server/conf"
+	"github.com/g-Halo/go-server/http_api"
 	"github.com/g-Halo/go-server/logger"
 	"github.com/g-Halo/go-server/model"
 	"github.com/g-Halo/go-server/protocol"
@@ -99,6 +100,7 @@ func (c *ChatS) findRoomById(uuid string) *model.Room {
 	return nil
 }
 
+// 拉起 tcp 服务和 http 服务
 func (s *ChatS) Main() error {
 	contxt := &context{s}
 	// 定义全局的 Once
@@ -113,6 +115,12 @@ func (s *ChatS) Main() error {
 	tcpServer := &tcpServer{ctx: contxt}
 	s.waitGroup.Wrap(func() {
 		exitFunc(protocol.TCPServer(s.tcpListener, tcpServer))
+	})
+
+	context := http_api.NewContext(s)
+	httpServer := http_api.Server(context)
+	s.waitGroup.Wrap(func() {
+		exitFunc(http_api.Serve(s.httpListener, httpServer, "HTTP"))
 	})
 
 	<- exitCh
