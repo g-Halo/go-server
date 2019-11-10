@@ -1,4 +1,4 @@
-package http_api
+package main
 
 import (
 	"github.com/g-Halo/go-server/logger"

@@ -1,16 +1,17 @@
-package main
+package auth
 
 import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
+	"net/rpc"
+	"os"
+	"time"
+
 	"github.com/dgrijalva/jwt-go"
 	"github.com/g-Halo/go-server/logger"
 	"github.com/g-Halo/go-server/model"
 	"github.com/g-Halo/go-server/util"
-	"net/rpc"
-	"os"
-	"time"
 )
 
 type Token struct {
@@ -42,7 +43,7 @@ func (Token) Create(t *Token, reply *util.Response) error {
 	}
 
 	if user == nil {
-		*reply = util.Response{ Data: -1, Msg: "无效的用户" }
+		*reply = util.Response{Code: util.Fail, Msg: "无效的用户"}
 		return nil
 	} else {
 		salt := user.Salt
@@ -51,7 +52,7 @@ func (Token) Create(t *Token, reply *util.Response) error {
 		m5.Write([]byte(string(t.Password)))
 		st := m5.Sum(nil)
 		if hex.EncodeToString(st) != user.Password {
-			*reply = util.Response{ Data: -1, Msg: "用户名或者密码错误" }
+			*reply = util.Response{Code: util.Fail, Msg: "用户名或者密码错误"}
 			return nil
 		}
 
@@ -66,7 +67,7 @@ func (Token) Create(t *Token, reply *util.Response) error {
 
 		tokenString, _ := token.SignedString([]byte(SecretKey))
 
-		*reply = util.Response{ Data: tokenString, Msg: "登录成功" }
+		*reply = util.Response{Code: util.Success, Data: tokenString, Msg: "登录成功"}
 	}
 
 	return nil

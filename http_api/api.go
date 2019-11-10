@@ -1,9 +1,7 @@
-package http_api
+package main
 
 import (
 	"encoding/json"
-	"github.com/dgrijalva/jwt-go"
-	"github.com/g-Halo/go-server/logic"
 	"github.com/g-Halo/go-server/model"
 	"github.com/g-Halo/go-server/util"
 	"github.com/julienschmidt/httprouter"
@@ -32,22 +30,22 @@ func renderError(err string) (res map[string]interface{}) {
 }
 
 // 中间件方法，用于校验 jwt 的合法性
-func (s *httpServer) ValidateToken(tokenString string) (*model.User, bool) {
-	if tokenString == "" {
-		return nil, false
-	}
-
-	token, _ := jwt.ParseWithClaims(tokenString, &util.MyCustomClaims{}, func(token *jwt.Token) (interface{}, error) {
-		return []byte(s.ctx.chatS.Conf.SecretKey), nil
-	})
-
-	if claims, ok := token.Claims.(*util.MyCustomClaims); ok && token.Valid {
-		user := logic.UserLogic.FindByUsername(claims.Username)
-		return user, true
-	} else {
-		return nil, false
-	}
-}
+//func (s *httpServer) ValidateToken(tokenString string) (*model.User, bool) {
+//	if tokenString == "" {
+//		return nil, false
+//	}
+//
+//	token, _ := jwt.ParseWithClaims(tokenString, &util.MyCustomClaims{}, func(token *jwt.Token) (interface{}, error) {
+//		return []byte(s.ctx.chatS.Conf.SecretKey), nil
+//	})
+//
+//	if claims, ok := token.Claims.(*util.MyCustomClaims); ok && token.Valid {
+//		user := logic.UserLogic.FindByUsername(claims.Username)
+//		return user, true
+//	} else {
+//		return nil, false
+//	}
+//}
 
 func validateParams(params url.Values, keys []string) bool {
 	for _, key := range keys {
@@ -61,7 +59,7 @@ func validateParams(params url.Values, keys []string) bool {
 
 // 注册
 // localhost:5001/sign?username=yigger&password=123456&nickname=yigger
-func (s *httpServer) signHandler(w http.ResponseWriter, req *http.Request, ps httprouter.Params) (interface{}, error) {
+func signHandler(w http.ResponseWriter, req *http.Request, ps httprouter.Params) (interface{}, error) {
 	// 校验字符串
 	if !validateParams(req.URL.Query(), []string{"username", "password", "nickname"}) {
 		return renderError("参数校验错误，请检查"), nil
@@ -72,7 +70,9 @@ func (s *httpServer) signHandler(w http.ResponseWriter, req *http.Request, ps ht
 		"username": req.URL.Query().Get("username"),
 		"password": req.URL.Query().Get("password"),
 	}
-	if err := logic.UserLogic.SignUp(params); err != nil {
+
+	var user model.User
+	if err := logicRpc.Call("Logic.SignUp", params, &user); err != nil {
 		return renderError("注册失败"), nil
 	}
 
@@ -80,32 +80,41 @@ func (s *httpServer) signHandler(w http.ResponseWriter, req *http.Request, ps ht
 }
 
 // 登录
-func (s *httpServer) loginHandler(w http.ResponseWriter, req *http.Request, ps httprouter.Params) (interface{}, error) {
+func loginHandler(w http.ResponseWriter, req *http.Request, ps httprouter.Params) (interface{}, error) {
 	var params loginParams
 	err := json.NewDecoder(req.Body).Decode(&params)
 	if err != nil {
 		return renderError("参数有误"), err
 	}
 
-	user, token, err := logic.UserLogic.Login(params.Username, params.Password)
-	if err != nil {
-		return renderError(err.Error()), nil
+	var res util.Response
+	if err := authRpc.Call("Token.Create", params, &res); err != nil {
+		return renderError("rpc错误"), err
+	}
+
+	if res.Code != util.Success {
+		return renderError(res.Msg), err
+	}
+
+	var user model.User
+	if err := logicRpc.Call("FindByUsername", params.Username, user); err != nil {
+		return renderError("find username error"), err
 	}
 
 	uJson := user.ToJson()
-	res := map[string]interface{}{
+	resHs := map[string]interface{}{
 		"user": uJson,
-		"token": token,
+		"token": res.Data,
 	}
-	return renderSuccess(res), nil
+	return renderSuccess(resHs), nil
 }
 
 // 获取联系人列表
-func (s *httpServer) GetContacts(w http.ResponseWriter, req *http.Request, currentUser *model.User) (interface{}, error) {
-	users := logic.UserLogic.GetUsers()
-
-	return renderSuccess(users), nil
-}
+//func (s *httpServer) GetContacts(w http.ResponseWriter, req *http.Request, currentUser *model.User) (interface{}, error) {
+//	users := logic.UserLogic.GetUsers()
+//
+//	return renderSuccess(users), nil
+//}
 
 //// 获取与某用户的聊天信息
 func (s *httpServer) GetContact(w http.ResponseWriter, req *http.Request, currentUser *model.User) (interface{}, error) {

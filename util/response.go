@@ -1,6 +1,12 @@
 package util
 
 type Response struct {
+	Code int
 	Data interface{}
-	Msg string
+	Msg  string
 }
+
+const (
+	Success = 1
+	Fail    = -1
+)
