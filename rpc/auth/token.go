@@ -30,7 +30,7 @@ const SecretKey = "b66630cedd9cd5c34cf91e7"
 func (Token) Create(t *Token, reply *util.Response) error {
 	// TODO: 用户名、密码校验
 
-	client, err := rpc.Dial("tcp", ":7302")
+	client, err := rpc.Dial("tcp", ":7072")
 	if err != nil {
 		fmt.Println("无效的地址")
 		os.Exit(0)

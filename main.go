@@ -7,8 +7,11 @@ import (
 )
 
 func init() {
-	userLogic := logic.UserLogic
+	// 初始化内存存储器
+	storage.NewStorage()
 
+	// 初始化测试用户
+	userLogic := logic.UserLogic
 	test1 := userLogic.SignUp(map[string]interface{}{
 		"username": "test1",
 		"nickname": "test1",
@@ -21,9 +24,8 @@ func init() {
 		"password": "123",
 	})
 
-	sto := storage.NewStorage()
-	sto.AddUser(test1)
-	sto.AddUser(test2)
+	storage.AddUser(test1)
+	storage.AddUser(test2)
 }
 
 func main() {

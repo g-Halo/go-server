@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/g-Halo/go-server/util"
 	"net/rpc"
 	"os"
+
+	"github.com/g-Halo/go-server/util"
 )
 
 type Params struct {
@@ -13,17 +14,12 @@ type Params struct {
 }
 
 func main() {
-	client, err := rpc.Dial("tcp", ":7301")
+	client, err := rpc.Dial("tcp", ":7071")
 	if err != nil {
-		fmt.Println("无效的地址")
+		fmt.Println(err)
+		// fmt.Println("无效的地址")
 		os.Exit(0)
 	}
-
-
-	//str := "abcd"
-	//var reply int
-	//err = client.Call("Token.Validate", &str, &reply)
-	//fmt.Println(reply)
 
 	fmt.Println("调用 token create")
 	p := &Params{Username: "test1", Password: "123"}
@@ -35,6 +31,5 @@ func main() {
 		fmt.Println(err.Error())
 		return
 	}
-
 
 }
