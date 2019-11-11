@@ -1,13 +1,14 @@
 package rpc
 
 import (
-	"fmt"
 	"net"
 	"net/rpc"
 	"sync"
 
+	"github.com/g-Halo/go-server/conf"
 	"github.com/g-Halo/go-server/logger"
 	"github.com/g-Halo/go-server/rpc/auth"
+	"github.com/g-Halo/go-server/rpc/instance"
 	"github.com/g-Halo/go-server/rpc/logic"
 	"github.com/g-Halo/go-server/util"
 )
@@ -16,22 +17,26 @@ type Rpc struct {
 	waitGroup util.WaitGroupWrapper
 }
 
-func registerRpc(rpcType interface{}, address string) error {
+var Client map[string]*rpc.Client
+
+func registerRpc(serverName string, rpcType interface{}, address string) error {
 	if err := rpc.Register(rpcType); err != nil {
 		logger.Fatal(err)
 	}
 
 	tcpAddr, err := net.ResolveTCPAddr("tcp", address)
 	if err != nil {
+		logger.Fatal(err)
 		return err
 	}
 
 	listener, err := net.ListenTCP("tcp", tcpAddr)
 	if err != nil {
+		logger.Fatal(err)
 		return err
 	}
 
-	fmt.Println(address)
+	logger.Infof("Start listen in %s", address)
 	go func() {
 		for {
 			conn, err := listener.Accept()
@@ -43,6 +48,7 @@ func registerRpc(rpcType interface{}, address string) error {
 		}
 	}()
 
+	instance.NewInstance(serverName, address)
 	return nil
 }
 
@@ -58,9 +64,9 @@ func StartServer() {
 	waitGroup := &util.WaitGroupWrapper{}
 	waitGroup.Wrap(func() {
 		// 权限校验 Rpc 模块
-		exitFunc(registerRpc(new(auth.Token), ":7071"))
+		exitFunc(registerRpc("auth", new(auth.Token), conf.Conf.AuthRPCAddress))
 		// 逻辑层 Rpc 模块
-		exitFunc(registerRpc(new(logic.Logic), ":7072"))
+		exitFunc(registerRpc("logic", new(logic.Logic), conf.Conf.LogicRPCAddress))
 	})
 
 	<-exitCh

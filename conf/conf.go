@@ -6,15 +6,20 @@ import (
 )
 
 type Config struct {
-	Env 			string  `json:"env"`
-	TcpAddress 		string	`json:"tcp_address"`
-	HttpAddress 	string	`json:"http_address"`
-	MongoDbAddress 	string	`json:"mongodb_address"`
-	SecretKey 		string 	`json:"secret_key"`
-	DB				string  `json:"db"`
+	Env         string `json:"env"`
+	TcpAddress  string `json:"tcp_address"`
+	HttpAddress string `json:"http_address"`
+
+	LogicRPCAddress string `json:"logic_rpc_address"`
+	AuthRPCAddress  string `json:"auth_rpc_address"`
+
+	MongoDbAddress string `json:"mongodb_address"`
+	SecretKey      string `json:"secret_key"`
+	DB             string `json:"db"`
 }
 
 const configPath = "config.json"
+
 var Conf *Config
 
 func LoadConf() *Config {
@@ -30,7 +35,6 @@ func LoadConf() *Config {
 		}
 		Conf = conf
 	}
-
 	return Conf
 }
 

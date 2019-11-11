@@ -3,14 +3,13 @@ package auth
 import (
 	"crypto/md5"
 	"encoding/hex"
-	"fmt"
-	"net/rpc"
-	"os"
 	"time"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/g-Halo/go-server/conf"
 	"github.com/g-Halo/go-server/logger"
 	"github.com/g-Halo/go-server/model"
+	"github.com/g-Halo/go-server/rpc/instance"
 	"github.com/g-Halo/go-server/util"
 )
 
@@ -24,21 +23,12 @@ type Claims struct {
 	jwt.StandardClaims
 }
 
-const SecretKey = "b66630cedd9cd5c34cf91e7"
-
 // 传入用户名、密码，创建 token
 func (Token) Create(t *Token, reply *util.Response) error {
-	// TODO: 用户名、密码校验
-
-	client, err := rpc.Dial("tcp", ":7072")
-	if err != nil {
-		fmt.Println("无效的地址")
-		os.Exit(0)
-	}
-	defer client.Close()
 
 	var user *model.User
-	if err = client.Call("Logic.FindByUsername", &t.Username, &user); err != nil {
+	// TODO: 超时的解决方案
+	if err := instance.LogicRPC.Call("Logic.FindByUsername", &t.Username, &user); err != nil {
 		logger.Error(err.Error())
 	}
 
@@ -65,7 +55,7 @@ func (Token) Create(t *Token, reply *util.Response) error {
 
 		token.Claims = claims
 
-		tokenString, _ := token.SignedString([]byte(SecretKey))
+		tokenString, _ := token.SignedString([]byte(conf.Conf.SecretKey))
 
 		*reply = util.Response{Code: util.Success, Data: tokenString, Msg: "登录成功"}
 	}
@@ -78,7 +68,7 @@ func (Token) Validate(arg *string, reply *int) error {
 	tokenString := *arg
 
 	token, _ := jwt.ParseWithClaims(tokenString, &util.MyCustomClaims{}, func(token *jwt.Token) (interface{}, error) {
-		return []byte(SecretKey), nil
+		return []byte(conf.Conf.SecretKey), nil
 	})
 
 	checkResult := false
