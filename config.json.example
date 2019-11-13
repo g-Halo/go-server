@@ -5,6 +5,6 @@
     "mongodb_address": "mongodb://localhost:27017",
     "db": "",
     "logic_rpc_address": ":7071",
-    "auth_rpc_address": "7072",
+    "auth_rpc_address": ":7072",
     "secret_key": "jwt secret token"
 }

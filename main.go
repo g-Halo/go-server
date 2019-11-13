@@ -18,20 +18,16 @@ func init() {
 
 	// 初始化测试用户
 	userLogic := logic.UserLogic
-	test1 := userLogic.SignUp(map[string]interface{}{
+	userLogic.SignUp(map[string]interface{}{
 		"username": "test1",
 		"nickname": "test1",
 		"password": "123",
 	})
-
-	test2 := userLogic.SignUp(map[string]interface{}{
+	userLogic.SignUp(map[string]interface{}{
 		"username": "test2",
 		"nickname": "test2",
 		"password": "123",
 	})
-
-	storage.AddUser(test1)
-	storage.AddUser(test2)
 }
 
 func main() {

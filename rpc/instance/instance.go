@@ -12,7 +12,7 @@ var (
 	LogicRPC *rpc.Client
 )
 
-func NewInstance(serverName string, address string) {
+func NewInstance(serverName string, address string) *rpc.Client {
 	client, err := rpc.Dial("tcp", address)
 	// defer client.Close()
 	if err != nil {
@@ -25,4 +25,5 @@ func NewInstance(serverName string, address string) {
 	} else if serverName == "logic" {
 		LogicRPC = client
 	}
+	return client
 }

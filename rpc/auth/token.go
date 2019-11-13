@@ -25,10 +25,11 @@ type Claims struct {
 
 // 传入用户名、密码，创建 token
 func (Token) Create(t *Token, reply *util.Response) error {
-
 	var user *model.User
+
+	client := instance.NewInstance("logic", conf.Conf.LogicRPCAddress)
 	// TODO: 超时的解决方案
-	if err := instance.LogicRPC.Call("Logic.FindByUsername", &t.Username, &user); err != nil {
+	if err := client.Call("Logic.FindByUsername", &t.Username, &user); err != nil {
 		logger.Error(err.Error())
 	}
 

@@ -8,7 +8,6 @@ import (
 	"github.com/g-Halo/go-server/conf"
 	"github.com/g-Halo/go-server/logger"
 	"github.com/g-Halo/go-server/rpc/auth"
-	"github.com/g-Halo/go-server/rpc/instance"
 	"github.com/g-Halo/go-server/rpc/logic"
 	"github.com/g-Halo/go-server/util"
 )
@@ -36,6 +35,8 @@ func registerRpc(serverName string, rpcType interface{}, address string) error {
 		return err
 	}
 
+	// go instance.NewInstance(serverName, address)
+
 	logger.Infof("Start listen in %s", address)
 	go func() {
 		for {
@@ -48,7 +49,6 @@ func registerRpc(serverName string, rpcType interface{}, address string) error {
 		}
 	}()
 
-	instance.NewInstance(serverName, address)
 	return nil
 }
 

@@ -54,11 +54,7 @@ func (logic *userLogic) SignUp(params map[string]interface{}) *model.User {
 
 	username := params["username"].(string)
 	user := logic.FindByUsername(username)
-	if user == nil {
-		return nil
-	}
-
-	if user.Username != "" {
+	if user != nil {
 		return nil
 	}
 
