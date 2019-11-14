@@ -22,3 +22,8 @@ func (logic *Logic) SignUp(params map[string]interface{}, user *model.User) erro
 	}
 	return nil
 }
+
+func (logic *Logic) GetUsers(users []map[string]interface{}) error {
+	users = UserLogic.GetUsers()
+	return nil
+}

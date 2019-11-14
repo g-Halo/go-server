@@ -66,23 +66,20 @@ func (Token) Create(t *Token, reply *util.Response) error {
 }
 
 // 传入 token，并检验 token 的合法性
-func (Token) Validate(arg *string, reply *int) error {
+func (Token) Validate(arg *string, reply *model.User) error {
 	tokenString := *arg
 
 	token, _ := jwt.ParseWithClaims(tokenString, &util.MyCustomClaims{}, func(token *jwt.Token) (interface{}, error) {
 		return []byte(conf.Conf.SecretKey), nil
 	})
 
-	checkResult := false
-	if _, ok := token.Claims.(*util.MyCustomClaims); ok && token.Valid {
-		//user := logic.UserLogic.FindByUsername(claims.Username)
-		checkResult = true
-	}
-
-	if checkResult {
-		*reply = 1
-	} else {
-		*reply = 0
+	if claims, ok := token.Claims.(*util.MyCustomClaims); ok && token.Valid {
+		var user *model.User
+		logicClient := instance.LogicRPC()
+		logicClient.Call("Logic.FindByUsername", claims.Username, user)
+		if user != nil {
+			*reply = *user
+		}
 	}
 	return nil
 }

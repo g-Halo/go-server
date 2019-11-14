@@ -31,22 +31,20 @@ func renderError(err string) (res map[string]interface{}) {
 }
 
 // 中间件方法，用于校验 jwt 的合法性
-//func (s *httpServer) ValidateToken(tokenString string) (*model.User, bool) {
-//	if tokenString == "" {
-//		return nil, false
-//	}
-//
-//	token, _ := jwt.ParseWithClaims(tokenString, &util.MyCustomClaims{}, func(token *jwt.Token) (interface{}, error) {
-//		return []byte(s.ctx.chatS.Conf.SecretKey), nil
-//	})
-//
-//	if claims, ok := token.Claims.(*util.MyCustomClaims); ok && token.Valid {
-//		user := logic.UserLogic.FindByUsername(claims.Username)
-//		return user, true
-//	} else {
-//		return nil, false
-//	}
-//}
+func ValidateToken(tokenString string) (*model.User, bool) {
+	if tokenString == "" {
+		return nil, false
+	}
+
+	var user *model.User
+	authClient := instance.AuthRPC()
+	authClient.Call("Token.Validate", &tokenString, user)
+	if user != nil {
+		return user, true
+	} else {
+		return nil, false
+	}
+}
 
 func validateParams(params url.Values, keys []string) bool {
 	for _, key := range keys {
@@ -113,11 +111,13 @@ func loginHandler(w http.ResponseWriter, req *http.Request, ps httprouter.Params
 }
 
 // 获取联系人列表
-//func (s *httpServer) GetContacts(w http.ResponseWriter, req *http.Request, currentUser *model.User) (interface{}, error) {
-//	users := logic.UserLogic.GetUsers()
-//
-//	return renderSuccess(users), nil
-//}
+func GetContacts(w http.ResponseWriter, req *http.Request, currentUser *model.User) (interface{}, error) {
+	client := instance.LogicRPC()
+	var users map[string]interface{}
+	client.Call("Logic.GetUsers", nil, &users)
+
+	return renderSuccess(users), nil
+}
 
 // 获取与某用户的聊天信息
 //func (s *httpServer) GetContact(w http.ResponseWriter, req *http.Request, currentUser *model.User) (interface{}, error) {
