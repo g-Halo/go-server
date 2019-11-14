@@ -1,33 +1,30 @@
-package main
+package http_api
 
 import (
-	"net"
-	"net/rpc"
-
+	"github.com/g-Halo/go-server/conf"
 	"github.com/g-Halo/go-server/logger"
+	"net"
+	"net/http"
+	"strings"
 )
 
-var logicRPC *rpc.Client
-var authRPC *rpc.Client
-
-func init() {
-	client, err := rpc.Dial("tcp", ":7302")
-	if err != nil {
-		logger.Fatal("7302 无效的地址")
+func Serve(listener net.Listener, handler http.Handler, proto string) error {
+	server := &http.Server{
+		Handler:  handler,
 	}
-	logicRPC = client
-
-	authRPC, err = rpc.Dial("tcp", ":7301")
-	if err != nil {
-		logger.Fatal("7301 无效的地址")
+	err := server.Serve(listener)
+	if err != nil && !strings.Contains(err.Error(), "use of closed network connection") {
+		logger.Fatal("http.Serve() error - %s", err)
 	}
+	return nil
 }
 
-func main() {
-	httpListener, err := net.Listen("tcp", ":4072")
+func Main() {
+	httpListener, err := net.Listen("tcp", conf.Conf.HttpApiAddress)
 	if err != nil {
 		logger.Fatal("error")
 	}
 
+	logger.Infof("start Listen web api in %s", conf.Conf.HttpApiAddress)
 	Serve(httpListener, StartServer(), "HTTP")
 }

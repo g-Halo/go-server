@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/g-Halo/go-server/conf"
+	"github.com/g-Halo/go-server/http_api"
 	"github.com/g-Halo/go-server/logger"
 	"github.com/g-Halo/go-server/rpc"
 	"github.com/g-Halo/go-server/rpc/logic"
@@ -31,5 +32,6 @@ func init() {
 }
 
 func main() {
-	rpc.StartServer()
+	go rpc.StartServer()
+	http_api.Main()
 }

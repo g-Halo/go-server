@@ -1,29 +1,26 @@
 package instance
 
 import (
-	"net/rpc"
-	"os"
-
+	"github.com/g-Halo/go-server/conf"
 	"github.com/g-Halo/go-server/logger"
+	"net/rpc"
 )
 
-var (
-	AuthRPC  *rpc.Client
-	LogicRPC *rpc.Client
-)
 
-func NewInstance(serverName string, address string) *rpc.Client {
+func NewInstance(address string) *rpc.Client {
 	client, err := rpc.Dial("tcp", address)
-	// defer client.Close()
 	if err != nil {
+		client.Close()
 		logger.Fatal(err)
-		os.Exit(0)
 	}
 
-	if serverName == "auth" {
-		AuthRPC = client
-	} else if serverName == "logic" {
-		LogicRPC = client
-	}
 	return client
+}
+
+func AuthRPC() *rpc.Client {
+	return NewInstance(conf.Conf.AuthRPCAddress)
+}
+
+func LogicRPC() *rpc.Client {
+	return NewInstance(conf.Conf.LogicRPCAddress)
 }

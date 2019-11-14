@@ -27,10 +27,11 @@ type Claims struct {
 func (Token) Create(t *Token, reply *util.Response) error {
 	var user *model.User
 
-	client := instance.NewInstance("logic", conf.Conf.LogicRPCAddress)
-	// TODO: 超时的解决方案
+	client := instance.LogicRPC()
+	// TODO: 超时?
 	if err := client.Call("Logic.FindByUsername", &t.Username, &user); err != nil {
 		logger.Error(err.Error())
+		return nil
 	}
 
 	if user == nil {
