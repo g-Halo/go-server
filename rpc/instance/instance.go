@@ -1,11 +1,14 @@
 package instance
 
 import (
+	"net/rpc"
+
 	"github.com/g-Halo/go-server/conf"
 	"github.com/g-Halo/go-server/logger"
-	"net/rpc"
 )
 
+var _authRPC *rpc.Client
+var _logicRPC *rpc.Client
 
 func NewInstance(address string) *rpc.Client {
 	client, err := rpc.Dial("tcp", address)
@@ -18,9 +21,15 @@ func NewInstance(address string) *rpc.Client {
 }
 
 func AuthRPC() *rpc.Client {
-	return NewInstance(conf.Conf.AuthRPCAddress)
+	if _authRPC == nil {
+		_authRPC = NewInstance(conf.Conf.AuthRPCAddress)
+	}
+	return _authRPC
 }
 
 func LogicRPC() *rpc.Client {
-	return NewInstance(conf.Conf.LogicRPCAddress)
+	if _logicRPC == nil {
+		_logicRPC = NewInstance(conf.Conf.LogicRPCAddress)
+	}
+	return _logicRPC
 }

@@ -2,13 +2,13 @@ package http_api
 
 import (
 	"encoding/json"
-	"github.com/g-Halo/go-server/logger"
+	"net/http"
+	"net/url"
+
 	"github.com/g-Halo/go-server/model"
 	"github.com/g-Halo/go-server/rpc/instance"
 	"github.com/g-Halo/go-server/util"
 	"github.com/julienschmidt/httprouter"
-	"net/http"
-	"net/url"
 )
 
 type loginParams struct {
@@ -19,14 +19,14 @@ type loginParams struct {
 func renderSuccess(data interface{}) (res map[string]interface{}) {
 	return map[string]interface{}{
 		"status": 200,
-		"data": data,
+		"data":   data,
 	}
 }
 
 func renderError(err string) (res map[string]interface{}) {
 	return map[string]interface{}{
 		"status": 400,
-		"error": err,
+		"error":  err,
 	}
 }
 
@@ -82,13 +82,21 @@ func signHandler(w http.ResponseWriter, req *http.Request, ps httprouter.Params)
 // 登录
 func loginHandler(w http.ResponseWriter, req *http.Request, ps httprouter.Params) (interface{}, error) {
 	var params loginParams
+	var res util.Response
+	logicClient := instance.LogicRPC()
+	authClient := instance.AuthRPC()
+
 	err := json.NewDecoder(req.Body).Decode(&params)
 	if err != nil {
 		return renderError("参数有误"), err
 	}
 
-	var res util.Response
-	if err := instance.AuthRPC().Call("Token.Create", params, &res); err != nil {
+	var user *model.User
+	if err := logicClient.Call("Logic.FindByUsername", &params.Username, &user); err != nil {
+		return renderError("Login Fail -2"), err
+	}
+
+	if err := authClient.Call("Token.Create", params, &res); err != nil {
 		return renderError("Login Fail -1"), err
 	}
 
@@ -96,17 +104,9 @@ func loginHandler(w http.ResponseWriter, req *http.Request, ps httprouter.Params
 		return renderError(res.Msg), err
 	}
 
-	var user *model.User
-	logger.Info("rpc")
-	logicClient := instance.LogicRPC()
-	if err := logicClient.Call("Logic.FindByUsername", &params.Username, &user); err != nil {
-		return renderError("Login Fail -2"), err
-	}
-	logger.Info("a")
-
-	uJson := user.ToJson()
+	uJSON := user.ToJson()
 	resHs := map[string]interface{}{
-		"user": uJson,
+		"user":  uJSON,
 		"token": res.Data,
 	}
 	return renderSuccess(resHs), nil

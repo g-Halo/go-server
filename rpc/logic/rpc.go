@@ -1,7 +1,6 @@
 package logic
 
 import (
-	"github.com/g-Halo/go-server/logger"
 	"github.com/g-Halo/go-server/model"
 )
 
@@ -9,7 +8,6 @@ type Logic struct{}
 
 // rpc 方法
 func (logic *Logic) FindByUsername(username *string, user *model.User) error {
-	logger.Info(*username)
 	u := UserLogic.FindByUsername(*username)
 	if u != nil {
 		*user = *u
