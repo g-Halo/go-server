@@ -38,7 +38,7 @@ func ValidateToken(tokenString string) (*model.User, bool) {
 
 	var user *model.User
 	authClient := instance.AuthRPC()
-	authClient.Call("Token.Validate", &tokenString, user)
+	authClient.Call("Token.Validate", &tokenString, &user)
 	if user != nil {
 		return user, true
 	} else {
