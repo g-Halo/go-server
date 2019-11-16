@@ -2,6 +2,7 @@ package http_api
 
 import (
 	"encoding/json"
+	"github.com/g-Halo/go-server/logger"
 	"net/http"
 	"net/url"
 
@@ -113,10 +114,27 @@ func loginHandler(w http.ResponseWriter, req *http.Request, ps httprouter.Params
 // 获取联系人列表
 func GetContacts(w http.ResponseWriter, req *http.Request, currentUser *model.User) (interface{}, error) {
 	client := instance.LogicRPC()
-	var users map[string]interface{}
-	client.Call("Logic.GetUsers", nil, &users)
+	users := make([]*model.User, 10)
+	if err := client.Call("Logic.GetUsers", "", &users); err != nil {
+		return renderError("Get Contacts Fail -1"), err
+	}
+	logger.Info(users)
 
-	return renderSuccess(users), nil
+	var data []map[string]interface{}
+	for _, user := range users {
+		data = append(data, map[string]interface{}{
+			"username":   user.Username,
+			"nickname":   user.NickName,
+			"created_at": user.CreatedAt,
+			"unread":     "uncheck",
+			"last_message": map[string]string{
+				"body":       "hello",
+				"created_at": "2019-10-01 12:00:00",
+			},
+		})
+	}
+
+	return renderSuccess(data), nil
 }
 
 // 获取与某用户的聊天信息

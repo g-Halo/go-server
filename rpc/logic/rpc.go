@@ -1,6 +1,7 @@
 package logic
 
 import (
+	"github.com/g-Halo/go-server/logger"
 	"github.com/g-Halo/go-server/model"
 )
 
@@ -23,7 +24,9 @@ func (logic *Logic) SignUp(params map[string]interface{}, user *model.User) erro
 	return nil
 }
 
-func (logic *Logic) GetUsers(users []map[string]interface{}) error {
-	users = UserLogic.GetUsers()
+func (logic *Logic) GetUsers(params string, users *[]*model.User) error {
+	us := UserLogic.GetUsers()
+	logger.Info(us)
+	users = &us
 	return nil
 }

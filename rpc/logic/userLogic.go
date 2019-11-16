@@ -14,21 +14,21 @@ type userLogic struct {
 
 var UserLogic = &userLogic{mutex: &sync.Mutex{}}
 
-func (logic *userLogic) GetUsers() []map[string]interface{} {
-	var data []map[string]interface{}
-	for _, user := range storage.GetUsers() {
-		data = append(data, map[string]interface{}{
-			"username":   user.Username,
-			"nickname":   user.NickName,
-			"created_at": user.CreatedAt,
-			"unread":     "uncheck",
-			"last_message": map[string]string{
-				"body":       "hello",
-				"created_at": "2019-10-01 12:00:00",
-			},
-		})
-	}
-	return data
+func (logic *userLogic) GetUsers() []*model.User {
+	//var data []map[string]interface{}
+	//for _, user := range storage.GetUsers() {
+	//	data = append(data, map[string]interface{}{
+	//		"username":   user.Username,
+	//		"nickname":   user.NickName,
+	//		"created_at": user.CreatedAt,
+	//		"unread":     "uncheck",
+	//		"last_message": map[string]string{
+	//			"body":       "hello",
+	//			"created_at": "2019-10-01 12:00:00",
+	//		},
+	//	})
+	//}
+	return storage.GetUsers()
 }
 
 func (logic *userLogic) Login(username, password string) (*model.User, string, error) {
