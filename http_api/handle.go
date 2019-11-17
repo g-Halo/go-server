@@ -136,45 +136,45 @@ func GetContacts(w http.ResponseWriter, req *http.Request, currentUser *model.Us
 }
 
 // 获取与某用户的聊天信息
-//func (s *httpServer) GetContact(w http.ResponseWriter, req *http.Request, currentUser *model.User) (interface{}, error) {
-//	username := req.URL.Query().Get("username")
-//	if username == "" {
-//		return renderError("无效的用户"), nil
-//	}
-//
-//	var User model.User
-//	user, err := User.FindByUsername(username)
-//	if err != nil {
-//		return nil, err
-//	}
-//
-//	// 获取他们之间的聊天消息内容
-//	// 1. 获取他们之间的房间号
-//	room := currentUser.FindP2PRoom(user.Username)
-//	if room == nil {
-//		return renderError("empty"), nil
-//	}
-//
-//	// 2. 从 DB 拉取历史聊天记录
-//	var chatData []map[string]interface{}
-//	for _, msg := range room.Messages {
-//		chatData = append(chatData, map[string]interface{}{
-//			"recipient": msg.Recipient,
-//			"sender": msg.Sender,
-//			"body": msg.Body,
-//			"created_at": msg.CreatedAt,
-//			"status": "check",
-//		})
-//	}
-//
-//	data := map[string]interface{}{
-//		"user": user,
-//		"messages": chatData,
-//	}
-//
-//	return renderSuccess(data), nil
-//}
-//
+func GetContact(w http.ResponseWriter, req *http.Request, currentUser *model.User) (interface{}, error) {
+	username := req.URL.Query().Get("username")
+	if username == "" {
+		return renderError("无效的用户"), nil
+	}
+
+	logicClient := instance.LogicRPC()
+	var user *model.User
+	if err := logicClient.Call("Logic.FindByUsername", &username, &user); err != nil {
+		return renderError("Login Fail -2"), err
+	}
+
+	// 获取他们之间的聊天消息内容
+	// 1. 获取他们之间的房间号
+	room := currentUser.FindP2PRoom(user.Username)
+	if room == nil {
+		return renderError("empty"), nil
+	}
+
+	// 2. 从 DB 拉取历史聊天记录
+	var chatData []map[string]interface{}
+	for _, msg := range room.Messages {
+		chatData = append(chatData, map[string]interface{}{
+			"recipient":  msg.Recipient,
+			"sender":     msg.Sender,
+			"body":       msg.Body,
+			"created_at": msg.CreatedAt,
+			"status":     "check",
+		})
+	}
+
+	data := map[string]interface{}{
+		"user":     user,
+		"messages": chatData,
+	}
+
+	return renderSuccess(data), nil
+}
+
 //func (s *httpServer) CreateChat(w http.ResponseWriter, req *http.Request, currentUser *model.User) (interface{}, error) {
 //	// 1. 从 form-data 获取 username，如果有 room_id 则也一起传过来
 //	// TODO: 先校验收发端是否好友

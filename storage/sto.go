@@ -26,3 +26,11 @@ func AddUser(user *model.User) {
 func GetUsers() []*model.User {
 	return Sto.Users
 }
+
+func AddRoom(room *model.Room) {
+	Sto.Rooms = append(Sto.Rooms, room)
+}
+
+func GetRooms() []*model.Room {
+	return Sto.Rooms
+}

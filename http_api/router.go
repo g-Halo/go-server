@@ -36,6 +36,6 @@ func StartServer() *httpServer {
 	//router.HandlerFunc("POST", "/v1/create_chat", MiddlewareHandler(ValidateToken, CreateChat))
 
 	// websocket 连接入口
-	//router.HandlerFunc("GET", "/ws", MiddlewareHandler(server.ValidateToken, server.WebSocketConnect))
+	router.HandlerFunc("GET", "/v1/ws", serveWs)
 	return server
 }

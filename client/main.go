@@ -3,12 +3,13 @@ package main
 import (
 	"bytes"
 	"flag"
-	"github.com/gorilla/websocket"
-	"github.com/g-Halo/go-server/logger"
 	"log"
 	"net/http"
 	"net/url"
 	"time"
+
+	"github.com/g-Halo/go-server/logger"
+	"github.com/gorilla/websocket"
 )
 
 // Hub maintains the set of active clients and broadcasts messages to the
@@ -59,7 +60,7 @@ func (h *Hub) run() {
 	}
 }
 
-var addr = flag.String("addr", ":8080", "http service address")
+var addr = flag.String("addr", ":8088", "http service address")
 
 func main() {
 	flag.Parse()

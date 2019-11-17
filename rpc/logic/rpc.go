@@ -28,3 +28,9 @@ func (logic *Logic) GetUsers(params string, reply *[]*model.User) error {
 	*reply = us
 	return nil
 }
+
+func (logic *Logic) FindOrCreate(usernames []string, reply *model.Room) error {
+	room := RoomLogic.FindOrCreate(usernames)
+	*reply = *room
+	return nil
+}

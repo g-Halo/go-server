@@ -10,6 +10,9 @@ import (
 var _authRPC *rpc.Client
 var _logicRPC *rpc.Client
 
+type RPCInstance struct {
+}
+
 func NewInstance(address string) *rpc.Client {
 	client, err := rpc.Dial("tcp", address)
 	if err != nil {
