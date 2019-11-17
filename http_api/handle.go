@@ -2,7 +2,6 @@ package http_api
 
 import (
 	"encoding/json"
-	"github.com/g-Halo/go-server/logger"
 	"net/http"
 	"net/url"
 
@@ -118,7 +117,6 @@ func GetContacts(w http.ResponseWriter, req *http.Request, currentUser *model.Us
 	if err := client.Call("Logic.GetUsers", "", &users); err != nil {
 		return renderError("Get Contacts Fail -1"), err
 	}
-	logger.Info(users)
 
 	var data []map[string]interface{}
 	for _, user := range users {

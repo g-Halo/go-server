@@ -51,7 +51,8 @@ func (Token) Create(t *Token, reply *util.Response) error {
 		// 颁发 token
 		token := jwt.New(jwt.SigningMethodHS256)
 		claims := make(jwt.MapClaims)
-		claims["exp"] = time.Now().Add(time.Hour * time.Duration(1)).Unix()
+		// 调试阶段：10小时过期
+		claims["exp"] = time.Now().Add(time.Hour * time.Duration(10)).Unix()
 		claims["iat"] = time.Now().Unix()
 		claims["username"] = t.Username
 
