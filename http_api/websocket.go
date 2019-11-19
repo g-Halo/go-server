@@ -6,9 +6,10 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/g-Halo/go-server/commet"
+
 	"github.com/g-Halo/go-server/model"
 	"github.com/g-Halo/go-server/rpc/instance"
-	"github.com/g-Halo/go-server/rpc/logic"
 
 	"github.com/g-Halo/go-server/logger"
 	"github.com/gorilla/websocket"
@@ -63,8 +64,10 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 	// 注册 client，包括 user
 	client := &Client{user: currentUser, conn: conn, send: make(chan []byte, 256)}
 
+	// 注册 heartbeat
+
 	go client.writePump()
-	go client.readPump()
+	// go client.readPump()
 }
 
 func (c *Client) readPump() {
@@ -105,18 +108,18 @@ func (c *Client) readPump() {
 		// 	logger.Error(err)
 		// }
 		// FIXME: 为什么用 RPC 创建的 room channel 会阻塞掉
-		room := logic.RoomLogic.FindOrCreate([]string{user.Username, c.user.Username})
+		// room := logic.RoomLogic.FindOrCreate([]string{user.Username, c.user.Username})
 
-		c.user.Rooms = append(c.user.Rooms, room)
-		user.Rooms = append(user.Rooms, room)
+		// c.user.Rooms = append(c.user.Rooms, room)
+		// user.Rooms = append(user.Rooms, room)
 
-		// 分发器
-		go c.user.SubRoom(room)
+		// // 分发器
+		// go c.user.SubRoom(room)
 
-		// 往房间发送消息
-		var Message model.Message
-		msg := Message.Create(c.user, user, string(message))
-		room.MessageChan <- msg
+		// // 往房间发送消息
+		// var Message model.Message
+		// msg := Message.Create(c.user, user, string(message))
+		// room.MessageChan <- msg
 	}
 }
 
@@ -128,12 +131,26 @@ func (c *Client) writePump() {
 	}()
 
 	for {
+		// logger.Info(c.user)
+		// 此处 c.user 是死对象，无法实时获取 Rooms
 		// for _, room := range c.user.Rooms {
-		// 	select {
-		// 	case <-room.MessageChan:
-		// 		logger.Info("read")
-		// 		// logger.Info(msg)
+		// 	logger.Info(room)
+		// 	roomChan, exist := commet.RoomChannel[room.UUID]
+		// 	if !exist {
+		// 		continue
 		// 	}
+		// 	logger.Info("Get the message: %s", <-roomChan.UserChan[c.user.Username])
 		// }
+		rooms, ok := commet.UserRooms[c.user.Username]
+		if !ok {
+			continue
+		}
+		for _, room := range rooms {
+			roomChan, exist := commet.RoomChannel[room]
+			if !exist {
+				continue
+			}
+			logger.Info("Get the message: %s", <-roomChan.UserChan[c.user.Username])
+		}
 	}
 }

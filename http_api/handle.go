@@ -5,8 +5,11 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/g-Halo/go-server/commet"
+
 	"github.com/g-Halo/go-server/model"
 	"github.com/g-Halo/go-server/rpc/instance"
+	"github.com/g-Halo/go-server/rpc/logic"
 	"github.com/g-Halo/go-server/util"
 	"github.com/julienschmidt/httprouter"
 )
@@ -14,6 +17,15 @@ import (
 type loginParams struct {
 	Username string `json:"username"`
 	Password string `json:"password"`
+}
+
+type CreateRoomParams struct {
+	Username string `json:"username"`
+}
+
+type RoomPushParams struct {
+	Username string `json:"username"`
+	Message  string `json:"message"`
 }
 
 func renderSuccess(data interface{}) (res map[string]interface{}) {
@@ -113,10 +125,12 @@ func loginHandler(w http.ResponseWriter, req *http.Request, ps httprouter.Params
 // 获取联系人列表
 func GetContacts(w http.ResponseWriter, req *http.Request, currentUser *model.User) (interface{}, error) {
 	client := instance.LogicRPC()
-	users := make([]*model.User, 10)
+	var users []*model.User
 	if err := client.Call("Logic.GetUsers", "", &users); err != nil {
 		return renderError("Get Contacts Fail -1"), err
 	}
+
+	// 不引入数据库的情况下创建虚拟房间 ID
 
 	var data []map[string]interface{}
 	for _, user := range users {
@@ -175,56 +189,85 @@ func GetContact(w http.ResponseWriter, req *http.Request, currentUser *model.Use
 	return renderSuccess(data), nil
 }
 
-//func (s *httpServer) CreateChat(w http.ResponseWriter, req *http.Request, currentUser *model.User) (interface{}, error) {
-//	// 1. 从 form-data 获取 username，如果有 room_id 则也一起传过来
-//	// TODO: 先校验收发端是否好友
-//	// 2. 校验聊天用户的有效性
-//	// 3. 查找 room 是否存在，如何查找？ 1. 有 room_id 直接找 	2. 遍历用户目前已有的 rooms, room.members.len 和 room.members 是否只包含他们两个人
-//	// 4. 如果 room 不存在，则新建一间 room，存储双方的信息
-//	// 5. 往 room 里面塞 message，并发送信号通知对方端
-//	_ = req.ParseForm()
-//	username := req.PostForm.Get("username")
-//	content := req.PostForm.Get("content")
-//	roomId := req.PostForm.Get("room_id")
-//
-//	//chatS := s.ctx.chatS
-//
-//	var User model.User
-//	targetUser, _ := User.FindByUsername(username)
-//	if targetUser.Username == "" {
-//		err := "无效的用户" + username
-//		return renderError(err), nil
-//	}
-//
-//	room := &model.Room{}
-//	if len(roomId) != 0 {
-//		// 有房间 Id
-//		//room = server.findRoomById(roomId)
-//	} else {
-//		// 先在用户已有的房间列表查找是否有符合的房间
-//		userArray := []string{currentUser.Username, targetUser.Username}
-//		p2pRoom := currentUser.FindP2PRoom(targetUser.Username)
-//		if p2pRoom != nil {
-//			room = p2pRoom
-//		} else {
-//			uid := uuid.NewV4()
-//			room = room.New(uid.String(), userArray)
-//			// TODO: 把用户添加到房间里面去
-//
-//			//server.Rooms = append(server.Rooms, room)
-//		}
-//	}
-//
-//	// 获取到当前正在连接的用户 Client
-//	//client := chatS.clients[currentUser.Username]
-//
-//	// 创建 message 信息
-//	var Message model.Message
-//	message := Message.Create(currentUser, targetUser, content)
-//
-//	// 往房间里面扔消息
-//	room.AddMessage(message)
-//
-//	// 因为对方已经订阅了 room 的频道，所以对方应该是可以收到的
-//	return renderSuccess("OK"), nil
-//}
+// 创建房间接口
+// POST /v1/room/create
+// type: JSON
+// params: {
+// 	username: "xxx"
+// }
+func CreateRoom(w http.ResponseWriter, req *http.Request, currentUser *model.User) (interface{}, error) {
+	var params CreateRoomParams
+	err := json.NewDecoder(req.Body).Decode(&params)
+	if err != nil {
+		return renderError("Params Error"), err
+	}
+	if params.Username == "" {
+		return renderError("User Not Found"), nil
+	}
+
+	logicClient := instance.LogicRPC()
+	var user *model.User
+	logicClient.Call("Logic.FindByUsername", &params.Username, &user)
+	if user == nil {
+		return renderError("User Not Found"), nil
+	} else if user.Username == currentUser.Username {
+		return renderError("TargetUser can not be yourself"), nil
+	}
+
+	room := logic.RoomLogic.FindOrCreate([]string{currentUser.Username, user.Username})
+	if room == nil {
+		return renderError("创建失败"), nil
+	}
+
+	// User 结构下的 Room 仅代表当前聊天窗口的 Room
+	// FIXME: 检测重复添加
+	currentUser.Rooms = append(currentUser.Rooms, room)
+	user.Rooms = append(user.Rooms, room)
+	commet.AddUserTo(currentUser, room)
+
+	// go currentUser.SubRoom(room)
+
+	return renderSuccess("创建成功"), nil
+}
+
+// 向房间发送新消息
+// POST /v1/room/push
+// type: JSON
+// params: {
+// 	username: "xxx",
+//  room_id: "xxx",
+//  message: "xxx"
+// }
+func PushMessage(w http.ResponseWriter, req *http.Request, currentUser *model.User) (interface{}, error) {
+	var params RoomPushParams
+	err := json.NewDecoder(req.Body).Decode(&params)
+	if err != nil {
+		return renderError("Params Error"), err
+	}
+	if params.Username == "" {
+		return renderError("User Not Found"), nil
+	}
+
+	logicClient := instance.LogicRPC()
+	var user *model.User
+	logicClient.Call("Logic.FindByUsername", &params.Username, &user)
+	if user == nil {
+		return renderError("User Not Found"), nil
+	} else if user.Username == currentUser.Username {
+		return renderError("TargetUser can not be yourself"), nil
+	}
+
+	room := logic.RoomLogic.FindOrCreate([]string{currentUser.Username, user.Username})
+	if room == nil {
+		return renderError("Room Not Found"), nil
+	}
+	currentUser.Rooms = append(currentUser.Rooms, room)
+	user.Rooms = append(user.Rooms, room)
+	commet.AddUserTo(currentUser, room)
+
+	// TODO: 使用 RPC，这样就不用一直等待返回值了
+	var Message model.Message
+	msg := Message.Create(currentUser, user, params.Message)
+	commet.PushMsg(room, msg)
+	return renderSuccess("发送成功"), nil
+}
