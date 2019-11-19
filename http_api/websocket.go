@@ -8,6 +8,7 @@ import (
 
 	"github.com/g-Halo/go-server/model"
 	"github.com/g-Halo/go-server/rpc/instance"
+	"github.com/g-Halo/go-server/rpc/logic"
 
 	"github.com/g-Halo/go-server/logger"
 	"github.com/gorilla/websocket"
@@ -99,21 +100,23 @@ func (c *Client) readPump() {
 		}
 
 		// 创建房间, 然后双方同时订阅房间
-		var room *model.Room
-		if err := logicClient.Call("Logic.FindOrCreate", []string{user.Username, c.user.Username}, &room); err != nil {
-			logger.Error(err)
-		}
+		// var room *model.Room
+		// if err := logicClient.Call("Logic.FindOrCreate", []string{user.Username, c.user.Username}, &room); err != nil {
+		// 	logger.Error(err)
+		// }
+		// FIXME: 为什么用 RPC 创建的 room channel 会阻塞掉
+		room := logic.RoomLogic.FindOrCreate([]string{user.Username, c.user.Username})
+
 		c.user.Rooms = append(c.user.Rooms, room)
 		user.Rooms = append(user.Rooms, room)
 
 		// 分发器
-		go room.Dispatch()
+		go c.user.SubRoom(room)
 
 		// 往房间发送消息
 		var Message model.Message
 		msg := Message.Create(c.user, user, string(message))
-		// room.MessageChan <- msg
-		logger.Info(msg)
+		room.MessageChan <- msg
 	}
 }
 
@@ -125,15 +128,12 @@ func (c *Client) writePump() {
 	}()
 
 	for {
-		for _, room := range c.user.Rooms {
-			logger.Info("room")
-			logger.Info(<-room.MessageChan)
-			logger.Info("message chan")
-			select {
-			case msg := <-room.MessageChan:
-				logger.Info("read")
-				logger.Info(msg)
-			}
-		}
+		// for _, room := range c.user.Rooms {
+		// 	select {
+		// 	case <-room.MessageChan:
+		// 		logger.Info("read")
+		// 		// logger.Info(msg)
+		// 	}
+		// }
 	}
 }

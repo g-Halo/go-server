@@ -5,24 +5,28 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"github.com/g-Halo/go-server/logger"
-	"github.com/g-Halo/go-server/util"
 	"log"
 
+	"github.com/g-Halo/go-server/logger"
+	"github.com/g-Halo/go-server/util"
+
 	"crypto/md5"
-	"go.mongodb.org/mongo-driver/bson"
 	"math/rand"
 	"time"
+
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 type User struct {
-	Username 			string 		`json:"username"`
-	Salt	 			string 		`json:"salt"`
-	Password 			string		`json:"password"`
-	NickName 			string		`json:"nickname"`
-	Rooms				[]*Room		`json:"rooms"`
-	CreatedAt 			time.Time 	`json:"created_at"`
-	LastMessage			*Message	`json:"last_message"`
+	Username    string    `json:"username"`
+	Salt        string    `json:"salt"`
+	Password    string    `json:"password"`
+	NickName    string    `json:"nickname"`
+	Rooms       []*Room   `json:"rooms"`
+	CreatedAt   time.Time `json:"created_at"`
+	LastMessage *Message  `json:"last_message"`
+
+	subRoom map[string]*Room
 }
 
 func (u User) Login(user *User, password string) (string, error) {
@@ -46,7 +50,7 @@ func (u User) Login(user *User, password string) (string, error) {
 
 func (User) New(params map[string]interface{}) *User {
 	// 生成随机 salt
-	rand := func (n int) string {
+	rand := func(n int) string {
 		var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 		b := make([]rune, n)
 		for i := range b {
@@ -86,7 +90,6 @@ func (u User) Create(user *User) error {
 	return nil
 }
 
-
 func (User) FindByUsername(username string) (*User, error) {
 	var user User
 	collection := Collection("users")
@@ -103,6 +106,20 @@ func (User) FindByUsername(username string) (*User, error) {
 	}
 
 	return &user, nil
+}
+
+func (user *User) SubRoom(room *Room) {
+	if _, ok := user.subRoom[room.UUID]; ok {
+		return
+	}
+	for {
+		select {
+		case msg := <-room.MessageChan:
+			room.AddMessage(msg)
+			// 分发
+			logger.Info("fen")
+		}
+	}
 }
 
 func (User) FindAll() []*User {
