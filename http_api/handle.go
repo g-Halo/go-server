@@ -225,8 +225,6 @@ func CreateRoom(w http.ResponseWriter, req *http.Request, currentUser *model.Use
 	user.Rooms = append(user.Rooms, room)
 	commet.AddUserTo(currentUser, room)
 
-	// go currentUser.SubRoom(room)
-
 	return renderSuccess("创建成功"), nil
 }
 

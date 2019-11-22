@@ -1,9 +1,10 @@
 package http_api
 
 import (
-	"encoding/json"
+	"io"
 	"log"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/g-Halo/go-server/commet"
@@ -24,9 +25,9 @@ var upgrader = websocket.Upgrader{
 }
 
 type Client struct {
-	conn *websocket.Conn
-	send chan []byte
-	user *model.User
+	conn   *websocket.Conn
+	writer io.WriteCloser
+	user   *model.User
 }
 
 type WsParams struct {
@@ -47,6 +48,10 @@ const (
 
 	// Maximum message size allowed from peer.
 	maxMessageSize = 512
+
+	minHearbeatSec = 30
+
+	Second = int64(time.Second)
 )
 
 func serveWs(w http.ResponseWriter, r *http.Request) {
@@ -61,13 +66,24 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 		logger.Fatal(err)
 	}
 
+	wsWrite, err := conn.NextWriter(websocket.TextMessage)
+	if currentUser == nil {
+		errorMsg := []byte("-p\r\n")
+		wsWrite.Write(errorMsg)
+	}
+
 	// 注册 client，包括 user
-	client := &Client{user: currentUser, conn: conn, send: make(chan []byte, 256)}
+	client := &Client{user: currentUser, conn: conn, writer: wsWrite}
 
 	// 注册 heartbeat
+	heartBeat := r.URL.Query().Get("heartbeat")
+	heartBeatTime, err := strconv.Atoi(heartBeat)
+	if err != nil || heartBeatTime < minHearbeatSec {
+		wsWrite.Write([]byte("-p\r\n"))
+	}
 
-	go client.writePump()
-	// go client.readPump()
+	// go client.writePump()
+	go client.readPump()
 }
 
 func (c *Client) readPump() {
@@ -78,8 +94,12 @@ func (c *Client) readPump() {
 	c.conn.SetReadDeadline(time.Now().Add(pongWait))
 	c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
 
-	var params *WsParams
+	begin := time.Now().UnixNano()
+	end := begin + Second
 	for {
+		if end-begin >= Second {
+			// 超过 1s 重置定时器?
+		}
 		_, message, err := c.conn.ReadMessage()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
@@ -88,38 +108,10 @@ func (c *Client) readPump() {
 			break
 		}
 
-		if err := json.Unmarshal(message, &params); err != nil {
-			logger.Error(err)
-			continue
+		if string(message) == "h" {
+			// 回应给 客户端
+			c.writer.Write([]byte("+h\r\n"))
 		}
-
-		// 查找发送消息的目标对象
-		logicClient := instance.LogicRPC()
-		var user *model.User
-		logicClient.Call("Logic.FindByUsername", &params.Username, &user)
-		if user == nil {
-			logger.Error("username not found")
-			continue
-		}
-
-		// 创建房间, 然后双方同时订阅房间
-		// var room *model.Room
-		// if err := logicClient.Call("Logic.FindOrCreate", []string{user.Username, c.user.Username}, &room); err != nil {
-		// 	logger.Error(err)
-		// }
-		// FIXME: 为什么用 RPC 创建的 room channel 会阻塞掉
-		// room := logic.RoomLogic.FindOrCreate([]string{user.Username, c.user.Username})
-
-		// c.user.Rooms = append(c.user.Rooms, room)
-		// user.Rooms = append(user.Rooms, room)
-
-		// // 分发器
-		// go c.user.SubRoom(room)
-
-		// // 往房间发送消息
-		// var Message model.Message
-		// msg := Message.Create(c.user, user, string(message))
-		// room.MessageChan <- msg
 	}
 }
 
