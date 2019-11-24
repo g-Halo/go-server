@@ -13,9 +13,11 @@ type Config struct {
 	LogicRPCAddress string `json:"logic_rpc_address"`
 	AuthRPCAddress  string `json:"auth_rpc_address"`
 	HttpApiAddress  string `json:"http_api_address"`
-	MongoDbAddress string `json:"mongodb_address"`
-	SecretKey      string `json:"secret_key"`
-	DB             string `json:"db"`
+	MongoDbAddress  string `json:"mongodb_address"`
+	SecretKey       string `json:"secret_key"`
+	DB              string `json:"db"`
+
+	ChannelBucketCount int `json:"channel_bucket_count"`
 }
 
 const configPath = "config.json"

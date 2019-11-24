@@ -35,8 +35,6 @@ func registerRpc(serverName string, rpcType interface{}, address string) error {
 		return err
 	}
 
-	// go instance.NewInstance(serverName, address)
-
 	logger.Infof("Start listen in %s", address)
 	go func() {
 		for {
@@ -60,6 +58,9 @@ func StartServer() {
 			exitCh <- err
 		})
 	}
+
+	// init buckets
+	logic.Channels = logic.NewChannelList()
 
 	waitGroup := &util.WaitGroupWrapper{}
 	waitGroup.Wrap(func() {

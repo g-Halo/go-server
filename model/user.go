@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"log"
 
 	"github.com/g-Halo/go-server/logger"
 	"github.com/g-Halo/go-server/util"
@@ -13,8 +12,6 @@ import (
 	"crypto/md5"
 	"math/rand"
 	"time"
-
-	"go.mongodb.org/mongo-driver/bson"
 )
 
 type User struct {
@@ -90,24 +87,6 @@ func (u User) Create(user *User) error {
 	return nil
 }
 
-func (User) FindByUsername(username string) (*User, error) {
-	var user User
-	collection := Collection("users")
-
-	filter := bson.M{"username": username}
-	documentReturned := collection.FindOne(context.TODO(), filter)
-	err := documentReturned.Decode(&user)
-	if err != nil {
-		return nil, err
-	}
-
-	if user.Username == "" {
-		return nil, errors.New("User Not Found")
-	}
-
-	return &user, nil
-}
-
 func (user *User) SubRoom(room *Room) {
 	if _, ok := user.subRoom[room.UUID]; ok {
 		return
@@ -116,78 +95,7 @@ func (user *User) SubRoom(room *Room) {
 		select {
 		case msg := <-room.MessageChan:
 			room.AddMessage(msg)
-			// 分发
-			logger.Info("fen")
 		}
-	}
-}
-
-func (User) FindAll() []*User {
-	var users []*User
-	collection := Collection("users")
-	cur, err := collection.Find(context.TODO(), bson.D{{}})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	for cur.Next(context.TODO()) {
-		var user User
-		err := cur.Decode(&user)
-		if err != nil {
-			log.Fatal(err)
-		}
-
-		users = append(users, &user)
-	}
-
-	cur.Close(context.TODO())
-
-	return users
-}
-
-func (u *User) AddRoom(room *Room) {
-	u.Rooms = append(u.Rooms, room)
-	filter := bson.D{{"username", u.Username}}
-	update := bson.D{
-		{"$set", bson.D{
-			{"rooms", u.Rooms},
-		}},
-	}
-
-	collection := Collection("users")
-	_, err := collection.UpdateOne(context.TODO(), filter, update)
-	if err != nil {
-		log.Fatal(err)
-	}
-}
-
-func (u *User) FindP2PRoom(username string) *Room {
-	userArray := []string{u.Username, username}
-	room := &Room{}
-	for _, r := range u.Rooms {
-		if r.Type == "p2p" && len(r.Members) == 2 {
-			if (r.Members[0] == userArray[0] || r.Members[0] == userArray[1]) || (r.Members[1] == userArray[0] || r.Members[1] == userArray[1]) {
-				room = r
-				break
-			}
-		}
-	}
-
-	// FIXME: 有可能 room 仅在 user 集合中存在，但在 Room Collection 不存在
-
-	if room.UUID == "" {
-		return nil
-	} else {
-		// FIXME: 有 DB 配置才使用
-		//filter := bson.M{"uuid": room.UUID}
-		//documentReturned := Collection("rooms").FindOne(context.TODO(), filter)
-		//err := documentReturned.Decode(&room)
-		//if err != nil {
-		//	logger.Error(err)
-		//	return nil
-		//}
-
-		return room
 	}
 }
 
