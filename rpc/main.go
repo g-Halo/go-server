@@ -60,7 +60,8 @@ func StartServer() {
 	}
 
 	// init buckets
-	logic.Channels = logic.NewChannelList()
+	logic.UserChannels = logic.NewChannelList(conf.Conf.UserChannelsCount)
+	logic.RoomChannels = logic.NewChannelList(conf.Conf.RoomChannelsCount)
 
 	waitGroup := &util.WaitGroupWrapper{}
 	waitGroup.Wrap(func() {

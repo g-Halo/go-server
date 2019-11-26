@@ -17,7 +17,8 @@ type Config struct {
 	SecretKey       string `json:"secret_key"`
 	DB              string `json:"db"`
 
-	ChannelBucketCount int `json:"channel_bucket_count"`
+	UserChannelsCount int `json:"user_channels_count"`
+	RoomChannelsCount int `json:"room_channels_count"`
 }
 
 const configPath = "config.json"
