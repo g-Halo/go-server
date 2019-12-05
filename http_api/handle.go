@@ -5,8 +5,6 @@ import (
 	"net/http"
 	"net/url"
 
-	"github.com/g-Halo/go-server/commet"
-
 	"github.com/g-Halo/go-server/model"
 	"github.com/g-Halo/go-server/rpc/instance"
 	"github.com/g-Halo/go-server/rpc/logic"
@@ -223,7 +221,7 @@ func CreateRoom(w http.ResponseWriter, req *http.Request, currentUser *model.Use
 	// FIXME: 检测重复添加
 	currentUser.Rooms = append(currentUser.Rooms, room)
 	user.Rooms = append(user.Rooms, room)
-	commet.AddUserTo(currentUser, room)
+	// commet.AddUserTo(currentUser, room)
 
 	return renderSuccess("创建成功"), nil
 }

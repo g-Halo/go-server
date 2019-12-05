@@ -7,10 +7,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/g-Halo/go-server/commet"
-
 	"github.com/g-Halo/go-server/model"
 	"github.com/g-Halo/go-server/rpc/instance"
+	"github.com/g-Halo/go-server/rpc/logic"
 
 	"github.com/g-Halo/go-server/logger"
 	"github.com/gorilla/websocket"
@@ -123,26 +122,14 @@ func (c *Client) writePump() {
 	}()
 
 	for {
-		// logger.Info(c.user)
-		// 此处 c.user 是死对象，无法实时获取 Rooms
-		// for _, room := range c.user.Rooms {
-		// 	logger.Info(room)
-		// 	roomChan, exist := commet.RoomChannel[room.UUID]
-		// 	if !exist {
-		// 		continue
-		// 	}
-		// 	logger.Info("Get the message: %s", <-roomChan.UserChan[c.user.Username])
-		// }
-		rooms, ok := commet.UserRooms[c.user.Username]
+		rooms, ok := logic.UserRooms[c.user.Username]
 		if !ok {
 			continue
 		}
-		for _, room := range rooms {
-			roomChan, exist := commet.RoomChannel[room]
-			if !exist {
-				continue
-			}
-			logger.Info("Get the message: %s", <-roomChan.UserChan[c.user.Username])
+		for _, uuid := range rooms {
+			rChan, _ := logic.RoomChannels.Get(uuid)
+			logger.Info("Get the message: %v", rChan)
 		}
+
 	}
 }

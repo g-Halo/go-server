@@ -17,7 +17,7 @@ type Chan interface {
 type ChannelBucket struct {
 	Data  map[string]Chan
 	Index int
-	*sync.Mutex
+	mutex *sync.Mutex
 }
 
 type ChannelList struct {
@@ -31,6 +31,7 @@ func NewChannelList(bucketCount int) *ChannelList {
 		item := &ChannelBucket{
 			Data:  map[string]Chan{},
 			Index: i,
+			mutex: &sync.Mutex{},
 		}
 		l.Channels = append(l.Channels, item)
 	}
@@ -44,14 +45,14 @@ func NewChannelList(bucketCount int) *ChannelList {
 // 通过用户的 username 哈希到某个 bucket
 func (l *ChannelList) Get(key string) (Chan, *ChannelBucket) {
 	b := l.HashInt(key)
-	b.Lock()
+	b.mutex.Lock()
 	if c, ok := b.Data[key]; ok {
-		b.Unlock()
+		b.mutex.Unlock()
 		return c, b
 	} else {
 		c = NewRoomChan(key)
 		b.Data[key] = c
-		b.Unlock()
+		b.mutex.Unlock()
 		return c, b
 	}
 }
