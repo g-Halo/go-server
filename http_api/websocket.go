@@ -81,7 +81,7 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 		wsWrite.Write([]byte("-p\r\n"))
 	}
 
-	// go client.writePump()
+	go client.writePump()
 	go client.readPump()
 }
 
