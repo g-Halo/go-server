@@ -1,6 +1,7 @@
 package logic
 
 import (
+	"errors"
 	"sync"
 
 	"github.com/g-Halo/go-server/model"
@@ -33,4 +34,30 @@ func (*roomLogic) FindOrCreate(usernames []string) *model.Room {
 	room := Room.New(uuid.String(), usernames)
 	storage.AddRoom(room)
 	return room
+}
+
+func (*roomLogic) Push(key, username string, data string) error {
+	currentUser := UserLogic.FindByUsername(key)
+	user := UserLogic.FindByUsername(username)
+
+	if user == nil || currentUser == nil {
+		return errors.New("User Not Found")
+	} else if user.Username == currentUser.Username {
+		return errors.New("TargetUser can not be yourself")
+	}
+
+	room := RoomLogic.FindOrCreate([]string{currentUser.Username, user.Username})
+	if room == nil {
+		return errors.New("Room Not Found")
+	}
+
+	currentUser.Rooms = append(currentUser.Rooms, room)
+	user.Rooms = append(user.Rooms, room)
+
+	var Message model.Message
+	msg := Message.Create(currentUser, user, data)
+	rChan, _ := RoomChannels.Get(room.UUID)
+	rChan.PushMsg(room.UUID, msg)
+
+	return nil
 }

@@ -37,9 +37,9 @@ func NewChannelList(bucketCount int) *ChannelList {
 	return l
 }
 
-func (l *ChannelList) New(key string) {
+// func (l *ChannelList) New(key string) {
 
-}
+// }
 
 // 通过用户的 username 哈希到某个 bucket
 func (l *ChannelList) Get(key string) (Chan, *ChannelBucket) {
@@ -49,7 +49,9 @@ func (l *ChannelList) Get(key string) (Chan, *ChannelBucket) {
 		b.Unlock()
 		return c, b
 	} else {
-		// c =
+		c = NewRoomChan(key)
+		b.Data[key] = c
+		b.Unlock()
 		return c, b
 	}
 }

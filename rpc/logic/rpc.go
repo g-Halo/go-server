@@ -34,3 +34,9 @@ func (logic *Logic) FindOrCreate(usernames []string, reply *model.Room) error {
 	*reply = *room
 	return nil
 }
+
+func (logic *Logic) Push(data []string, reply *error) error {
+	err := RoomLogic.Push(data[0], data[1], data[2])
+	*reply = err
+	return nil
+}

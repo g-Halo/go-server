@@ -247,25 +247,11 @@ func PushMessage(w http.ResponseWriter, req *http.Request, currentUser *model.Us
 	}
 
 	logicClient := instance.LogicRPC()
-	var user *model.User
-	logicClient.Call("Logic.FindByUsername", &params.Username, &user)
-	if user == nil {
-		return renderError("User Not Found"), nil
-	} else if user.Username == currentUser.Username {
-		return renderError("TargetUser can not be yourself"), nil
+	logicClient.Call("Logic.Push", []string{currentUser.Username, params.Username, params.Message}, &err)
+
+	if err != nil {
+		return renderError(err.Error()), nil
 	}
 
-	room := logic.RoomLogic.FindOrCreate([]string{currentUser.Username, user.Username})
-	if room == nil {
-		return renderError("Room Not Found"), nil
-	}
-	currentUser.Rooms = append(currentUser.Rooms, room)
-	user.Rooms = append(user.Rooms, room)
-	commet.AddUserTo(currentUser, room)
-
-	// TODO: 使用 RPC，这样就不用一直等待返回值了
-	var Message model.Message
-	msg := Message.Create(currentUser, user, params.Message)
-	commet.PushMsg(room, msg)
 	return renderSuccess("发送成功"), nil
 }
