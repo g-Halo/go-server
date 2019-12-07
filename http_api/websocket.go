@@ -1,6 +1,7 @@
 package http_api
 
 import (
+	"github.com/g-Halo/go-server/rpc/logic"
 	"io"
 	"log"
 	"net/http"
@@ -9,9 +10,9 @@ import (
 
 	"github.com/g-Halo/go-server/model"
 	"github.com/g-Halo/go-server/rpc/instance"
-	"github.com/g-Halo/go-server/rpc/logic"
 
 	"github.com/g-Halo/go-server/logger"
+	"github.com/g-Halo/go-server/storage"
 	"github.com/gorilla/websocket"
 )
 
@@ -122,14 +123,22 @@ func (c *Client) writePump() {
 	}()
 
 	for {
-		rooms, ok := logic.UserRooms[c.user.Username]
-		if !ok {
+		user := storage.GetUser(c.user.Username)
+		if user == nil {
 			continue
 		}
-		for _, uuid := range rooms {
-			rChan, _ := logic.RoomChannels.Get(uuid)
-			logger.Info("Get the message: %v", rChan)
-		}
 
+		for _, room := range user.Rooms {
+			rChan, _ := logic.RoomChannels.Get(room.UUID)
+
+			msg := rChan.GetMsg(c.user.Username)
+			if msg == nil {
+				continue
+			} else {
+				logger.Info("get message")
+				//logger.Info("Get the message: %s", string(msg.Body))
+			}
+
+		}
 	}
 }

@@ -53,8 +53,8 @@ func (*roomLogic) Push(key, username string, data string) error {
 
 	currentUser.Rooms = append(currentUser.Rooms, room)
 	user.Rooms = append(user.Rooms, room)
-	UserRooms[user.Username] = append(UserRooms[user.Username], room.UUID)
-	UserRooms[currentUser.Username] = append(UserRooms[currentUser.Username], room.UUID)
+	storage.UpdateUser(currentUser)
+	storage.UpdateUser(user)
 
 	var Message model.Message
 	msg := Message.Create(currentUser, user, data)

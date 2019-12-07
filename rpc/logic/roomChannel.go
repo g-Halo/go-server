@@ -32,3 +32,12 @@ func NewRoomChan(RoomId string) *RoomChan {
 func (rc *RoomChan) PushMsg(key string, m *model.Message) {
 	rc.MsgChan <- m
 }
+
+func (rc *RoomChan) GetMsg(key string) *model.Message {
+	c, ok := rc.UserDispatchChan[key]
+	if !ok {
+		return nil
+	}
+
+	return <- c
+}

@@ -12,6 +12,7 @@ var RoomChannels *ChannelList
 
 type Chan interface {
 	PushMsg(key string, m *model.Message)
+	GetMsg(key string) *model.Message
 }
 
 type ChannelBucket struct {
@@ -37,10 +38,6 @@ func NewChannelList(bucketCount int) *ChannelList {
 	}
 	return l
 }
-
-// func (l *ChannelList) New(key string) {
-
-// }
 
 // 通过用户的 username 哈希到某个 bucket
 func (l *ChannelList) Get(key string) (Chan, *ChannelBucket) {

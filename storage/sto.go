@@ -5,32 +5,56 @@ import (
 )
 
 type Storage struct {
-	Users []*model.User
-	Rooms []*model.Room
+	Users map[string]*model.User
+	Rooms map[string]*model.Room
 }
 
 var Sto *Storage
 
 func NewStorage() *Storage {
 	Sto = &Storage{
-		Users: make([]*model.User, 0),
-		Rooms: make([]*model.Room, 0),
+		Users: map[string]*model.User{},
+		Rooms: map[string]*model.Room{},
 	}
 	return Sto
 }
 
 func AddUser(user *model.User) {
-	Sto.Users = append(Sto.Users, user)
+	Sto.Users[user.Username] = user
 }
 
 func GetUsers() []*model.User {
-	return Sto.Users
+	var users []*model.User
+	for _, v := range Sto.Users {
+		users = append(users, v)
+	}
+	return users
+}
+
+func UpdateUser(user *model.User) {
+	_, exist := Sto.Users[user.Username]
+	if exist {
+		Sto.Users[user.Username] = user
+	}
+}
+
+func GetUser(key string) *model.User {
+	user, ok := Sto.Users[key]
+	if ok {
+		return user
+	} else {
+		return nil
+	}
 }
 
 func AddRoom(room *model.Room) {
-	Sto.Rooms = append(Sto.Rooms, room)
+	Sto.Rooms[room.UUID] = room
 }
 
 func GetRooms() []*model.Room {
-	return Sto.Rooms
+	var rooms []*model.Room
+	for _, v := range Sto.Rooms {
+		rooms = append(rooms, v)
+	}
+	return rooms
 }
