@@ -58,3 +58,12 @@ func GetRooms() []*model.Room {
 	}
 	return rooms
 }
+
+func GetRoom(key string) *model.Room {
+	room, ok := Sto.Rooms[key]
+	if ok {
+		return room
+	} else {
+		return nil
+	}
+}

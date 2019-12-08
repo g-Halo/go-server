@@ -7,7 +7,6 @@ import (
 	h "github.com/g-Halo/go-server/util/hash"
 )
 
-var UserChannels *ChannelList
 var RoomChannels *ChannelList
 
 type Chan interface {

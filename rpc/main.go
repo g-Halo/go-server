@@ -59,10 +59,7 @@ func StartServer() {
 		})
 	}
 
-	// init buckets
-	logic.UserChannels = logic.NewChannelList(conf.Conf.UserChannelsCount)
 	logic.RoomChannels = logic.NewChannelList(conf.Conf.RoomChannelsCount)
-
 	waitGroup := &util.WaitGroupWrapper{}
 	waitGroup.Wrap(func() {
 		// 权限校验 Rpc 模块

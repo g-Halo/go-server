@@ -8,6 +8,5 @@
     "auth_rpc_address": ":7072",
     "http_api_address": ":7834",
     "secret_key": "jwt secret token",
-    "user_channels_count": 128,
     "room_channels_count": 64
 }

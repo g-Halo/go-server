@@ -17,7 +17,6 @@ type Config struct {
 	SecretKey       string `json:"secret_key"`
 	DB              string `json:"db"`
 
-	UserChannelsCount int `json:"user_channels_count"`
 	RoomChannelsCount int `json:"room_channels_count"`
 }
 

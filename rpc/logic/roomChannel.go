@@ -1,6 +1,9 @@
 package logic
 
-import "github.com/g-Halo/go-server/model"
+import (
+	"github.com/g-Halo/go-server/model"
+	"github.com/g-Halo/go-server/storage"
+)
 
 type RoomChan struct {
 	RoomId           string
@@ -15,8 +18,15 @@ func NewRoomChan(RoomId string) *RoomChan {
 		UserDispatchChan: map[string]chan *model.Message{},
 	}
 
+	room := storage.GetRoom(RoomId)
+	if room != nil {
+		for _, username := range room.Members {
+			rc.UserDispatchChan[username] = make(chan *model.Message, 64)
+		}
+	}
+
 	// 监听 MsgChan，并分发给用户
-	// FIXME: 如何确保用户都收到了消息？
+	// TODO: 如何确保用户都收到了消息？
 	go func() {
 		for {
 			msg := <-rc.MsgChan
@@ -39,5 +49,5 @@ func (rc *RoomChan) GetMsg(key string) *model.Message {
 		return nil
 	}
 
-	return <- c
+	return <-c
 }

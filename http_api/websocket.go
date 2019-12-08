@@ -1,12 +1,13 @@
 package http_api
 
 import (
-	"github.com/g-Halo/go-server/rpc/logic"
 	"io"
 	"log"
 	"net/http"
 	"strconv"
 	"time"
+
+	"github.com/g-Halo/go-server/rpc/logic"
 
 	"github.com/g-Halo/go-server/model"
 	"github.com/g-Halo/go-server/rpc/instance"
@@ -135,8 +136,7 @@ func (c *Client) writePump() {
 			if msg == nil {
 				continue
 			} else {
-				logger.Info("get message")
-				//logger.Info("Get the message: %s", string(msg.Body))
+				logger.Infof("Get the message: %s", string(msg.Body))
 			}
 
 		}
