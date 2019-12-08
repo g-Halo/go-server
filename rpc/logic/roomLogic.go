@@ -59,7 +59,7 @@ func (*roomLogic) Push(key, username string, data string) error {
 	var Message model.Message
 	msg := Message.Create(currentUser, user, data)
 	rChan, _ := RoomChannels.Get(room.UUID)
-	rChan.PushMsg(room.UUID, msg)
+	rChan.PushMsg(room, msg)
 
 	return nil
 }

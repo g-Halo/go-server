@@ -34,7 +34,8 @@ func StartServer() *httpServer {
 	// 创建房间
 	router.HandlerFunc("POST", "/v1/room/create", MiddlewareHandler(ValidateToken, CreateRoom))
 	// 获取与用户聊天的历史消息
-	// router.HandlerFunc("GET", "/v1/room/messages", MiddlewareHandler(ValidateToken, GetMessages))
+	router.HandlerFunc("GET", "/v1/room/contact", MiddlewareHandler(ValidateToken, GetMessages))
+
 	// websocket 连接入口
 	router.HandlerFunc("GET", "/v1/ws", serveWs)
 	return server

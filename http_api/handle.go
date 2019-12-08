@@ -5,9 +5,11 @@ import (
 	"net/http"
 	"net/url"
 
+	"github.com/g-Halo/go-server/storage"
+
+	"github.com/g-Halo/go-server/logger"
 	"github.com/g-Halo/go-server/model"
 	"github.com/g-Halo/go-server/rpc/instance"
-	"github.com/g-Halo/go-server/rpc/logic"
 	"github.com/g-Halo/go-server/util"
 	"github.com/julienschmidt/httprouter"
 )
@@ -128,13 +130,22 @@ func GetContacts(w http.ResponseWriter, req *http.Request, currentUser *model.Us
 		return renderError("Get Contacts Fail -1"), err
 	}
 
-	// 不引入数据库的情况下创建虚拟房间 ID
-
 	var data []map[string]interface{}
 	for _, user := range users {
+		if user.Username == currentUser.Username {
+			continue
+		}
+
+		var room *model.Room
+		if err := client.Call("Logic.FindOrCreate", []string{currentUser.Username, user.Username}, &room); err != nil {
+			logger.Error(err.Error())
+			continue
+		}
+
 		data = append(data, map[string]interface{}{
 			"username":   user.Username,
 			"nickname":   user.NickName,
+			"room_id":    room.UUID,
 			"created_at": user.CreatedAt,
 			"unread":     "uncheck",
 			"last_message": map[string]string{
@@ -148,44 +159,45 @@ func GetContacts(w http.ResponseWriter, req *http.Request, currentUser *model.Us
 }
 
 // 获取与某用户的聊天信息
-// func GetContact(w http.ResponseWriter, req *http.Request, currentUser *model.User) (interface{}, error) {
-// 	username := req.URL.Query().Get("username")
-// 	if username == "" {
-// 		return renderError("无效的用户"), nil
-// 	}
+func GetMessages(w http.ResponseWriter, req *http.Request, currentUser *model.User) (interface{}, error) {
+	username := req.URL.Query().Get("username")
+	if username == "" {
+		return renderError("无效的用户"), nil
+	}
 
-// 	logicClient := instance.LogicRPC()
-// 	var user *model.User
-// 	if err := logicClient.Call("Logic.FindByUsername", &username, &user); err != nil {
-// 		return renderError("Login Fail -2"), err
-// 	}
+	logicClient := instance.LogicRPC()
+	var user *model.User
+	if err := logicClient.Call("Logic.FindByUsername", &username, &user); err != nil {
+		return renderError("User not found"), err
+	}
 
-// 	// 获取他们之间的聊天消息内容
-// 	// 1. 获取他们之间的房间号
-// 	room := currentUser.FindP2PRoom(user.Username)
-// 	if room == nil {
-// 		return renderError("empty"), nil
-// 	}
+	// 获取他们之间的聊天消息内容
+	// 1. 获取他们之间的房间号
+	roomID := req.URL.Query().Get("room_id")
+	room := storage.GetRoom(roomID)
+	if room == nil {
+		return renderError("Room not found"), nil
+	}
 
-// 	// 2. 从 DB 拉取历史聊天记录
-// 	var chatData []map[string]interface{}
-// 	for _, msg := range room.Messages {
-// 		chatData = append(chatData, map[string]interface{}{
-// 			"recipient":  msg.Recipient,
-// 			"sender":     msg.Sender,
-// 			"body":       msg.Body,
-// 			"created_at": msg.CreatedAt,
-// 			"status":     "check",
-// 		})
-// 	}
+	// 2. 从 DB 拉取历史聊天记录
+	var chatData []map[string]interface{}
+	for _, msg := range room.Messages {
+		chatData = append(chatData, map[string]interface{}{
+			"recipient":  msg.Recipient,
+			"sender":     msg.Sender,
+			"body":       msg.Body,
+			"created_at": msg.CreatedAt,
+			"status":     "check",
+		})
+	}
 
-// 	data := map[string]interface{}{
-// 		"user":     user,
-// 		"messages": chatData,
-// 	}
+	data := map[string]interface{}{
+		"user":     user.ToJson(),
+		"messages": chatData,
+	}
 
-// 	return renderSuccess(data), nil
-// }
+	return renderSuccess(data), nil
+}
 
 // 创建房间接口
 // POST /v1/room/create
@@ -212,16 +224,19 @@ func CreateRoom(w http.ResponseWriter, req *http.Request, currentUser *model.Use
 		return renderError("TargetUser can not be yourself"), nil
 	}
 
-	room := logic.RoomLogic.FindOrCreate([]string{currentUser.Username, user.Username})
+	var room *model.Room
+	if err := logicClient.Call("Logic.FindOrCreate", []string{currentUser.Username, user.Username}, &room); err != nil {
+		return renderError("创建失败， -1"), nil
+	}
+
 	if room == nil {
-		return renderError("创建失败"), nil
+		return renderError("创建失败， -2"), nil
 	}
 
 	// User 结构下的 Room 仅代表当前聊天窗口的 Room
 	// FIXME: 检测重复添加
 	currentUser.Rooms = append(currentUser.Rooms, room)
 	user.Rooms = append(user.Rooms, room)
-	// commet.AddUserTo(currentUser, room)
 
 	return renderSuccess("创建成功"), nil
 }

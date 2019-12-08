@@ -3,13 +3,13 @@ package http_api
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/julienschmidt/httprouter"
-	"github.com/g-Halo/go-server/logger"
-	"github.com/g-Halo/go-server/model"
 	"io"
 	"net/http"
-)
 
+	"github.com/g-Halo/go-server/logger"
+	"github.com/g-Halo/go-server/model"
+	"github.com/julienschmidt/httprouter"
+)
 
 type Err struct {
 	Code int
@@ -78,12 +78,7 @@ func MiddlewareHandler(mdFunc func(string) (*model.User, bool), fn func(http.Res
 			case []byte:
 				w.Write(d)
 			case map[string]interface{}:
-				//data, err := json.Marshal(data)
 				json.NewEncoder(w).Encode(data)
-				//if err != nil {
-				//	logger.Errorf("response json %T", data)
-				//}
-				//w.Write(data)
 			default:
 				data, _ := json.Marshal(data)
 				w.Write(data)
@@ -93,4 +88,3 @@ func MiddlewareHandler(mdFunc func(string) (*model.User, bool), fn func(http.Res
 		}
 	}
 }
-

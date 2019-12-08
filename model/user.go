@@ -1,7 +1,6 @@
 package model
 
 import (
-	"context"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -22,11 +21,9 @@ type User struct {
 	Rooms       []*Room   `json:"rooms"`
 	CreatedAt   time.Time `json:"created_at"`
 	LastMessage *Message  `json:"last_message"`
-
-	subRoom map[string]*Room
 }
 
-func (u User) Login(user *User, password string) (string, error) {
+func (u *User) Login(user *User, password string) (string, error) {
 	// 密码加盐校验
 	salt := user.Salt
 	m5 := md5.New()
@@ -45,7 +42,7 @@ func (u User) Login(user *User, password string) (string, error) {
 	return token, nil
 }
 
-func (User) New(params map[string]interface{}) *User {
+func (*User) New(params map[string]interface{}) *User {
 	// 生成随机 salt
 	rand := func(n int) string {
 		var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
@@ -75,28 +72,6 @@ func (User) New(params map[string]interface{}) *User {
 	user.CreatedAt = time.Now()
 
 	return user
-}
-
-// 注册用户
-func (u User) Create(user *User) error {
-	collection := Collection("users")
-	_, err := collection.InsertOne(context.TODO(), user)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-func (user *User) SubRoom(room *Room) {
-	if _, ok := user.subRoom[room.UUID]; ok {
-		return
-	}
-	for {
-		select {
-		case msg := <-room.MessageChan:
-			room.AddMessage(msg)
-		}
-	}
 }
 
 func (u *User) ToJson() map[string]interface{} {

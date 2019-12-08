@@ -39,8 +39,10 @@ func NewRoomChan(RoomId string) *RoomChan {
 	return rc
 }
 
-func (rc *RoomChan) PushMsg(key string, m *model.Message) {
-	rc.MsgChan <- m
+func (rc *RoomChan) PushMsg(room *model.Room, message *model.Message) {
+	rc.MsgChan <- message
+	room.Messages = append(room.Messages, message)
+	storage.UpdateRoom(room)
 }
 
 func (rc *RoomChan) GetMsg(key string) *model.Message {

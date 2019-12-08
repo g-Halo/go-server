@@ -27,20 +27,4 @@ func (Room) New(uuid string, members []string) *Room {
 
 func (r *Room) AddMessage(message *Message) {
 	r.Messages = append(r.Messages, message)
-	// if message == nil {
-	// 	logger.Error("message is null")
-	// 	return
-	// }
-
-	// filter := bson.D{{"uuid", r.UUID}}
-	// update := bson.D{
-	// 	{"$push", bson.D{
-	// 		{"messages", message},
-	// 	}},
-	// }
-	// collection := Collection("rooms")
-	// _, err := collection.UpdateOne(context.TODO(), filter, update)
-	// if err != nil {
-	// 	logger.Error(err)
-	// }
 }

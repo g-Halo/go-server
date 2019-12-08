@@ -67,3 +67,10 @@ func GetRoom(key string) *model.Room {
 		return nil
 	}
 }
+
+func UpdateRoom(room *model.Room) {
+	_, exist := Sto.Rooms[room.UUID]
+	if exist {
+		Sto.Rooms[room.UUID] = room
+	}
+}

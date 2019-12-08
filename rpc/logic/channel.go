@@ -10,7 +10,7 @@ import (
 var RoomChannels *ChannelList
 
 type Chan interface {
-	PushMsg(key string, m *model.Message)
+	PushMsg(room *model.Room, m *model.Message)
 	GetMsg(key string) *model.Message
 }
 
