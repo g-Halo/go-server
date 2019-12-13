@@ -7,13 +7,10 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/g-Halo/go-server/rpc/logic"
-
 	"github.com/g-Halo/go-server/model"
 	"github.com/g-Halo/go-server/rpc/instance"
 
 	"github.com/g-Halo/go-server/logger"
-	"github.com/g-Halo/go-server/storage"
 	"github.com/gorilla/websocket"
 )
 
@@ -98,6 +95,7 @@ func (c *Client) readPump() {
 	begin := time.Now().UnixNano()
 	end := begin + Second
 	for {
+		c.writer.Write([]byte("+h\r\n"))
 		if end-begin >= Second {
 			// 超过 1s 重置定时器?
 		}
@@ -123,22 +121,29 @@ func (c *Client) writePump() {
 		c.conn.Close()
 	}()
 
+	////w, err := c.conn.NextWriter(websocket.TextMessage)
+	////if err != nil {
+	////	return
+	////}
+	//w.Write([]byte("123"))
+
 	for {
-		user := storage.GetUser(c.user.Username)
-		if user == nil {
-			continue
-		}
-
-		for _, room := range user.Rooms {
-			rChan, _ := logic.RoomChannels.Get(room.UUID)
-
-			msg := rChan.GetMsg(c.user.Username)
-			if msg == nil {
-				continue
-			} else {
-				logger.Infof("Get the message: %s", string(msg.Body))
-			}
-
-		}
+		c.writer.Write([]byte("message send by serve"))
+		//user := storage.GetUser(c.user.Username)
+		//if user == nil {
+		//	continue
+		//}
+		//
+		//for _, room := range user.Rooms {
+		//	rChan, _ := logic.RoomChannels.Get(room.UUID)
+		//
+		//	msg := rChan.GetMsg(c.user.Username)
+		//	if msg == nil {
+		//		continue
+		//	} else {
+		//		logger.Infof("Get the message: %s", string(msg.Body))
+		//	}
+		//
+		//}
 	}
 }
