@@ -42,8 +42,6 @@ func (*roomLogic) Push(key, username string, data string) error {
 
 	if user == nil || currentUser == nil {
 		return errors.New("User Not Found")
-	} else if user.Username == currentUser.Username {
-		return errors.New("TargetUser can not be yourself")
 	}
 
 	room := RoomLogic.FindOrCreate([]string{currentUser.Username, user.Username})

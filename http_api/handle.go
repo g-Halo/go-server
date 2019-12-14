@@ -24,6 +24,7 @@ type CreateRoomParams struct {
 }
 
 type RoomPushParams struct {
+	RoomId   string `json:"room_id"`
 	Username string `json:"username"`
 	Message  string `json:"message"`
 }
@@ -255,7 +256,7 @@ func PushMessage(w http.ResponseWriter, req *http.Request, currentUser *model.Us
 	if err != nil {
 		return renderError("Params Error"), err
 	}
-	if params.Username == "" {
+	if params.Username == "" && params.RoomId == "" {
 		return renderError("User Not Found"), nil
 	}
 

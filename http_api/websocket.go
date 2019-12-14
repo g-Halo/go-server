@@ -9,6 +9,8 @@ import (
 
 	"github.com/g-Halo/go-server/model"
 	"github.com/g-Halo/go-server/rpc/instance"
+	"github.com/g-Halo/go-server/rpc/logic"
+	"github.com/g-Halo/go-server/storage"
 
 	"github.com/g-Halo/go-server/logger"
 	"github.com/gorilla/websocket"
@@ -32,6 +34,12 @@ type WsParams struct {
 	Type     string `json:"type"`
 	Username string `json:"username"`
 	Message  string `json:"message"`
+}
+
+type WsResponse struct {
+	Type    string                 `json:"type"`
+	User    map[string]interface{} `json:"user"`
+	Message map[string]interface{} `json:"message"`
 }
 
 const (
@@ -84,6 +92,16 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 	go client.readPump()
 }
 
+func (c *Client) Write(message string) {
+	w, err := c.conn.NextWriter(websocket.TextMessage)
+	if err != nil {
+		logger.Info(err)
+		return
+	}
+
+	w.Write([]byte(message))
+}
+
 func (c *Client) readPump() {
 	defer func() {
 		c.conn.Close()
@@ -121,29 +139,36 @@ func (c *Client) writePump() {
 		c.conn.Close()
 	}()
 
-	////w, err := c.conn.NextWriter(websocket.TextMessage)
-	////if err != nil {
-	////	return
-	////}
-	//w.Write([]byte("123"))
-
 	for {
-		c.writer.Write([]byte("message send by serve"))
-		//user := storage.GetUser(c.user.Username)
-		//if user == nil {
-		//	continue
-		//}
-		//
-		//for _, room := range user.Rooms {
-		//	rChan, _ := logic.RoomChannels.Get(room.UUID)
-		//
-		//	msg := rChan.GetMsg(c.user.Username)
-		//	if msg == nil {
-		//		continue
-		//	} else {
-		//		logger.Infof("Get the message: %s", string(msg.Body))
-		//	}
-		//
-		//}
+		// data := &WsResponse{
+		// 	Type: "new-message",
+		// 	User: map[string]interface{}{
+		// 		"username": "test2",
+		// 	},
+		// 	Message: map[string]interface{}{
+		// 		"data": "hello world",
+		// 	},
+		// }
+		// res, _ := json.Marshal(data)
+		// c.Write(string(res))
+		// time.Sleep(time.Second * 3)
+
+		user := storage.GetUser(c.user.Username)
+		if user == nil {
+			continue
+		}
+
+		for _, room := range user.Rooms {
+			rChan, _ := logic.RoomChannels.Get(room.UUID)
+
+			msg := rChan.GetMsg(c.user.Username)
+			if msg == nil {
+				continue
+			} else {
+				logger.Infof("Get the message: %s", string(msg.Body))
+			}
+
+		}
+
 	}
 }
