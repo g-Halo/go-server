@@ -5,19 +5,19 @@ import (
 )
 
 type Message struct {
-	SenderId    int       `json:"send_id"`
-	Sender      string    `json:"sender"`
-	Recipient   string    `json:"recipient"`
-	RecipientId int       `json:"recipient_id"`
-	Body        string    `json:"body"`
-	CreatedAt   time.Time `json:"created_at"`
-	Status      string    `json:"status"`
+	Sender    string `json:"sender"`
+	Recipient string `json:"recipient"`
+	Body      string `json:"body"`
+	Room      Room
+	CreatedAt time.Time `json:"created_at"`
+	Status    string    `json:"status"`
 }
 
-func (Message) Create(sender *User, recipient *User, body string) *Message {
+func (Message) Create(sender *User, recipient *User, room Room, body string) *Message {
 	message := &Message{
 		Sender:    sender.Username,
 		Recipient: recipient.Username,
+		Room:      room,
 		Body:      body,
 		CreatedAt: time.Now(),
 		Status:    "uncheck",

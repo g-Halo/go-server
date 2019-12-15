@@ -193,6 +193,7 @@ func GetMessages(w http.ResponseWriter, req *http.Request, currentUser *model.Us
 	}
 
 	data := map[string]interface{}{
+		"room":     room.UUID,
 		"user":     user.ToJson(),
 		"messages": chatData,
 	}

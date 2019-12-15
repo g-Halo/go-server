@@ -1,6 +1,7 @@
 package http_api
 
 import (
+	"encoding/json"
 	"io"
 	"log"
 	"net/http"
@@ -165,10 +166,43 @@ func (c *Client) writePump() {
 			if msg == nil {
 				continue
 			} else {
-				logger.Infof("Get the message: %s", string(msg.Body))
+				res := messageResponse(msg)
+				c.Write(string(res))
 			}
 
 		}
 
 	}
+}
+
+func messageResponse(message *model.Message) []byte {
+	logicClient := instance.LogicRPC()
+	var sender model.User
+	var accepter model.User
+	logicClient.Call("Logic.FindByUsername", &message.Sender, &sender)
+	logicClient.Call("Logic.FindByUsername", &message.Recipient, &accepter)
+
+	res, err := json.Marshal(struct {
+		Sender   map[string]interface{} `json:"sender"`
+		Accepter map[string]interface{} `json:"accepter"`
+		Room     map[string]string      `json:"room"`
+		Message  map[string]interface{} `json:"message"`
+	}{
+		Sender:   sender.ToJson(),
+		Accepter: accepter.ToJson(),
+		Room: map[string]string{
+			"uuid": message.Room.UUID,
+		},
+		Message: map[string]interface{}{
+			"body":       message.Body,
+			"created_at": message.CreatedAt,
+			"status":     message.Status,
+		},
+	})
+
+	if err != nil {
+		logger.Error("message response json error")
+	}
+
+	return res
 }

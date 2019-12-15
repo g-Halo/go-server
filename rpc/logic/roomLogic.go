@@ -55,7 +55,7 @@ func (*roomLogic) Push(key, username string, data string) error {
 	storage.UpdateUser(user)
 
 	var Message model.Message
-	msg := Message.Create(currentUser, user, data)
+	msg := Message.Create(currentUser, user, *room, data)
 	rChan, _ := RoomChannels.Get(room.UUID)
 	rChan.PushMsg(room, msg)
 
