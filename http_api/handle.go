@@ -268,5 +268,6 @@ func PushMessage(w http.ResponseWriter, req *http.Request, currentUser *model.Us
 		return renderError(err.Error()), nil
 	}
 
+	// FIXME: 此处无法保证一定能返回正确的消息给用户
 	return renderSuccess("发送成功"), nil
 }

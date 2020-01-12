@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/g-Halo/go-server/model"
@@ -26,9 +27,13 @@ var upgrader = websocket.Upgrader{
 }
 
 type Client struct {
+	mutex sync.Mutex
+
+	isClosed bool
 	conn   *websocket.Conn
 	writer io.WriteCloser
 	user   *model.User
+
 }
 
 type WsParams struct {
@@ -79,8 +84,11 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 		wsWrite.Write(errorMsg)
 	}
 
-	// 注册 client，包括 user
-	client := &Client{user: currentUser, conn: conn, writer: wsWrite}
+	client := &Client{
+		user: currentUser,
+		conn: conn,
+		writer: wsWrite,
+	}
 
 	// 注册 heartbeat
 	heartBeat := r.URL.Query().Get("heartbeat")
@@ -97,10 +105,12 @@ func (c *Client) Write(message string) {
 	w, err := c.conn.NextWriter(websocket.TextMessage)
 	if err != nil {
 		logger.Info(err)
-		return
+		goto ERR
 	}
-
 	w.Write([]byte(message))
+
+ERR:
+	c.Close()
 }
 
 func (c *Client) readPump() {
@@ -137,23 +147,10 @@ func (c *Client) writePump() {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
 		ticker.Stop()
-		c.conn.Close()
+		c.Close()
 	}()
 
 	for {
-		// data := &WsResponse{
-		// 	Type: "new-message",
-		// 	User: map[string]interface{}{
-		// 		"username": "test2",
-		// 	},
-		// 	Message: map[string]interface{}{
-		// 		"data": "hello world",
-		// 	},
-		// }
-		// res, _ := json.Marshal(data)
-		// c.Write(string(res))
-		// time.Sleep(time.Second * 3)
-
 		user := storage.GetUser(c.user.Username)
 		if user == nil {
 			continue
@@ -205,4 +202,11 @@ func messageResponse(message *model.Message) []byte {
 	}
 
 	return res
+}
+
+func (c *Client) Close() {
+	c.mutex.Lock()
+	defer c.mutex.Unlock()
+	c.isClosed = true
+	c.conn.Close()
 }
