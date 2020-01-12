@@ -5,7 +5,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	"strconv"
 	"sync"
 	"time"
 
@@ -30,10 +29,9 @@ type Client struct {
 	mutex sync.Mutex
 
 	isClosed bool
-	conn   *websocket.Conn
-	writer io.WriteCloser
-	user   *model.User
-
+	conn     *websocket.Conn
+	writer   io.WriteCloser
+	user     *model.User
 }
 
 type WsParams struct {
@@ -85,32 +83,29 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 	}
 
 	client := &Client{
-		user: currentUser,
-		conn: conn,
+		user:   currentUser,
+		conn:   conn,
 		writer: wsWrite,
 	}
 
 	// 注册 heartbeat
-	heartBeat := r.URL.Query().Get("heartbeat")
-	heartBeatTime, err := strconv.Atoi(heartBeat)
-	if err != nil || heartBeatTime < minHearbeatSec {
-		wsWrite.Write([]byte("-p\r\n"))
-	}
+	// heartBeat := r.URL.Query().Get("heartbeat")
+	// heartBeatTime, err := strconv.Atoi(heartBeat)
+	// if err != nil || heartBeatTime < minHearbeatSec {
+	// 	wsWrite.Write([]byte("-p\r\n"))
+	// }
 
 	go client.writePump()
-	go client.readPump()
+	// go client.readPump()
 }
 
 func (c *Client) Write(message string) {
 	w, err := c.conn.NextWriter(websocket.TextMessage)
 	if err != nil {
-		logger.Info(err)
-		goto ERR
+		logger.Error(err)
+		c.Close()
 	}
 	w.Write([]byte(message))
-
-ERR:
-	c.Close()
 }
 
 func (c *Client) readPump() {
@@ -160,10 +155,12 @@ func (c *Client) writePump() {
 			rChan, _ := logic.RoomChannels.Get(room.UUID)
 
 			msg := rChan.GetMsg(c.user.Username)
+			logger.Info(msg)
 			if msg == nil {
 				continue
 			} else {
 				res := messageResponse(msg)
+				logger.Info("success send")
 				c.Write(string(res))
 			}
 
@@ -192,6 +189,8 @@ func messageResponse(message *model.Message) []byte {
 		},
 		Message: map[string]interface{}{
 			"body":       message.Body,
+			"recipient":  accepter.ToJson(),
+			"sender":     sender.ToJson(),
 			"created_at": message.CreatedAt,
 			"status":     message.Status,
 		},

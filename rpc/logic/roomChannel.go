@@ -14,14 +14,14 @@ type RoomChan struct {
 func NewRoomChan(RoomId string) *RoomChan {
 	rc := &RoomChan{
 		RoomId:           RoomId,
-		MsgChan:          make(chan *model.Message, 64),
+		MsgChan:          make(chan *model.Message, 512),
 		UserDispatchChan: map[string]chan *model.Message{},
 	}
 
 	room := storage.GetRoom(RoomId)
 	if room != nil {
 		for _, username := range room.Members {
-			rc.UserDispatchChan[username] = make(chan *model.Message, 64)
+			rc.UserDispatchChan[username] = make(chan *model.Message, 512)
 		}
 	}
 
