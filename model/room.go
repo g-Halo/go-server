@@ -5,28 +5,35 @@ import (
 )
 
 type Room struct {
-	UUID      string     `json:"uuid"`
-	Name      string     `json:"salt"`
-	Members   []string   `json:"members"`
-	Type      string     `json:"type"`
-	CreatedAt time.Time  `json:"created_at"`
-	Messages  []*Message `json:"messages"`
-
-	MessageChan chan *Message
+	UUID      string    `json:"uuid"`
+	Name      string    `json:"salt"`
+	Members   []string  `json:"members"`
+	Type      string    `json:"type"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
-func (Room) New(uuid string, members []string) *Room {
+type RoomMessage struct {
+	UUID     string     `json:"uuid"`
+	Messages []*Message `json:"messages"`
+	// MessageChan chan *Message
+}
+
+func (*Room) New(uuid string, members []string) (*Room, *RoomMessage) {
 	room := &Room{
-		UUID:        uuid,
-		Members:     members,
-		Type:        "p2p",
-		CreatedAt:   time.Now(),
-		MessageChan: make(chan *Message, 256),
+		UUID:      uuid,
+		Members:   members,
+		Type:      "p2p",
+		CreatedAt: time.Now(),
+		// MessageChan: make(chan *Message, 256),
 		// Messages: make([]*Message, 32), // RPC 不能回传指针
 	}
-	return room
+	rmsg := &RoomMessage{
+		UUID:     uuid,
+		Messages: make([]*Message, 0),
+	}
+	return room, rmsg
 }
 
-func (r *Room) AddMessage(message *Message) {
-	r.Messages = append(r.Messages, message)
+func (rmsg *RoomMessage) AddMessage(message *Message) {
+	rmsg.Messages = append(rmsg.Messages, message)
 }

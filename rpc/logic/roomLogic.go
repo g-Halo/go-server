@@ -31,8 +31,9 @@ func (*roomLogic) FindOrCreate(usernames []string) *model.Room {
 
 	var Room model.Room
 	uuid := uuid.NewV4()
-	room := Room.New(uuid.String(), usernames)
+	room, roomMsg := Room.New(uuid.String(), usernames)
 	storage.AddRoom(room)
+	storage.AddRoomMsg(roomMsg)
 	return room
 }
 

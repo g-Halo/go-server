@@ -46,8 +46,8 @@ func NewRoomChan(RoomId string) *RoomChan {
 
 func (rc *RoomChan) PushMsg(room *model.Room, message *model.Message) {
 	rc.MsgChan <- message
-	room.Messages = append(room.Messages, message)
-	storage.UpdateRoom(room)
+	roomMsg := storage.GetRoomMsg(room.UUID)
+	roomMsg.AddMessage(message)
 }
 
 func (rc *RoomChan) GetMsg(key string) *model.Message {
