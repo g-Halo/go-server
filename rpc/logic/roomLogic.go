@@ -49,6 +49,8 @@ func (*roomLogic) Push(key, username string, data string) error {
 		return errors.New("Room Not Found")
 	}
 
+	rChan, _ := RoomChannels.Get(room.UUID)
+	rChan.mutex.Lock()
 	currentUser.Rooms = append(currentUser.Rooms, room)
 	user.Rooms = append(user.Rooms, room)
 	storage.UpdateUser(currentUser)
@@ -56,8 +58,8 @@ func (*roomLogic) Push(key, username string, data string) error {
 
 	var Message model.Message
 	msg := Message.Create(currentUser, user, *room, data)
-	rChan, _ := RoomChannels.Get(room.UUID)
 	rChan.PushMsg(room, msg)
+	rChan.mutex.Unlock()
 
 	return nil
 }

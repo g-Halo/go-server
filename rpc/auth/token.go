@@ -77,7 +77,7 @@ func (Token) Validate(arg *string, reply *model.User) error {
 		var user *model.User
 		logicClient := instance.LogicRPC()
 		if err := logicClient.Call("Logic.FindByUsername", claims.Username, &user); err != nil {
-			logger.Info("无效的 Token", err)
+			logger.Info("无效的 Token: ", err)
 		} else if user != nil {
 			*reply = *user
 		}

@@ -16,13 +16,15 @@ type Room struct {
 }
 
 func (Room) New(uuid string, members []string) *Room {
-	return &Room{
+	room := &Room{
 		UUID:        uuid,
 		Members:     members,
 		Type:        "p2p",
 		CreatedAt:   time.Now(),
 		MessageChan: make(chan *Message, 256),
+		// Messages: make([]*Message, 32), // RPC 不能回传指针
 	}
+	return room
 }
 
 func (r *Room) AddMessage(message *Message) {

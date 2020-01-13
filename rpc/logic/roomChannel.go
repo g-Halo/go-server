@@ -1,6 +1,8 @@
 package logic
 
 import (
+	"sync"
+
 	"github.com/g-Halo/go-server/model"
 	"github.com/g-Halo/go-server/storage"
 )
@@ -9,6 +11,8 @@ type RoomChan struct {
 	RoomId           string
 	MsgChan          chan *model.Message
 	UserDispatchChan map[string]chan *model.Message // 负责分发给某个用户
+
+	mutex *sync.Mutex
 }
 
 func NewRoomChan(RoomId string) *RoomChan {
@@ -16,6 +20,7 @@ func NewRoomChan(RoomId string) *RoomChan {
 		RoomId:           RoomId,
 		MsgChan:          make(chan *model.Message, 512),
 		UserDispatchChan: map[string]chan *model.Message{},
+		mutex:            &sync.Mutex{},
 	}
 
 	room := storage.GetRoom(RoomId)

@@ -3,19 +3,13 @@ package logic
 import (
 	"sync"
 
-	"github.com/g-Halo/go-server/model"
 	h "github.com/g-Halo/go-server/util/hash"
 )
 
 var RoomChannels *ChannelList
 
-type Chan interface {
-	PushMsg(room *model.Room, m *model.Message)
-	GetMsg(key string) *model.Message
-}
-
 type ChannelBucket struct {
-	Data  map[string]Chan
+	Data  map[string]*RoomChan
 	Index int
 	mutex *sync.Mutex
 }
@@ -29,7 +23,7 @@ func NewChannelList(bucketCount int) *ChannelList {
 	l := &ChannelList{Channels: []*ChannelBucket{}, BucketCount: bucketCount}
 	for i := 0; i < bucketCount; i++ {
 		item := &ChannelBucket{
-			Data:  map[string]Chan{},
+			Data:  map[string]*RoomChan{},
 			Index: i,
 			mutex: &sync.Mutex{},
 		}
@@ -39,7 +33,7 @@ func NewChannelList(bucketCount int) *ChannelList {
 }
 
 // 通过用户的 username 哈希到某个 bucket
-func (l *ChannelList) Get(key string) (Chan, *ChannelBucket) {
+func (l *ChannelList) Get(key string) (*RoomChan, *ChannelBucket) {
 	b := l.HashInt(key)
 	b.mutex.Lock()
 	if c, ok := b.Data[key]; ok {
