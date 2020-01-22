@@ -17,6 +17,9 @@ git clone 本仓库
 运行项目
 `go run main.go`
 
+GRPC
+参考：https://developers.google.com/protocol-buffers/docs/gotutorial
+protoc -I=./protoc --go_out=plugins:./pb protoc/auth.proto
 ```
 
 ### API

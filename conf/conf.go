@@ -20,7 +20,7 @@ type Config struct {
 	RoomChannelsCount int `json:"room_channels_count"`
 }
 
-const configPath = "config.json"
+const configPath = "/Users/yigger/Projects/go-server/config.json"
 
 var Conf *Config
 

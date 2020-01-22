@@ -1,0 +1,42 @@
+syntax = 'proto3';
+
+package pb;
+
+message AuthReq {
+    string username = 1;
+    string passowrd = 2;
+}
+
+message AuthResp {
+    int64  code = 1;
+    string data = 2;
+    string msg = 3;
+}
+
+message ValidateReq {
+    string tokenStr = 1;
+}
+
+message ValidateResp {
+    int64 code = 1;
+    string username = 2;
+    string msg = 3;
+}
+
+message SignUpReq {
+    string nickname = 1;
+    string username = 2;
+    string password = 3;
+}
+
+message SignUpResp {
+    int64  code = 1;
+    string username = 2;
+    string msg = 3;
+}
+
+service Auth {
+  rpc SignIn(AuthReq) returns (AuthResp);
+  rpc SignUp(SignUpReq) returns (SignUpResp);
+  rpc Validate(ValidateReq) returns (ValidateResp);
+}

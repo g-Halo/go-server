@@ -1,0 +1,16 @@
+syntax = 'proto3';
+
+package pb;
+
+message PushMessageReq {
+    string message_id = 1;
+    string receiver_username = 2;
+    string sender_username = 3;
+    string body = 4;
+}
+
+message PushMessageResp {}
+
+service Logic {
+    rpc PushMessage(PushMessageReq) returns (PushMessageResp);
+}
