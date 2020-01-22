@@ -5,16 +5,18 @@ import (
 )
 
 type Storage struct {
-	Users map[string]*model.User
-	Rooms map[string]*model.Room
+	Users    map[string]*model.User
+	Rooms    map[string]*model.Room
+	RoomMsgs map[string]*model.RoomMessage
 }
 
 var Sto *Storage
 
 func NewStorage() *Storage {
 	Sto = &Storage{
-		Users: map[string]*model.User{},
-		Rooms: map[string]*model.Room{},
+		Users:    map[string]*model.User{},
+		Rooms:    map[string]*model.Room{},
+		RoomMsgs: map[string]*model.RoomMessage{},
 	}
 	return Sto
 }
@@ -49,6 +51,14 @@ func GetUser(key string) *model.User {
 
 func AddRoom(room *model.Room) {
 	Sto.Rooms[room.UUID] = room
+}
+
+func AddRoomMsg(rmsg *model.RoomMessage) {
+	Sto.RoomMsgs[rmsg.UUID] = rmsg
+}
+
+func GetRoomMsg(uuid string) *model.RoomMessage {
+	return Sto.RoomMsgs[uuid]
 }
 
 func GetRooms() []*model.Room {

@@ -152,12 +152,12 @@ func (c *Client) writePump() {
 			rChan, _ := chanel.RoomChannels.Get(room.UUID)
 
 			msg := rChan.GetMsg(c.user.Username)
-			logger.Info(msg)
+			// logger.Info(msg)
 			if msg == nil {
 				continue
 			} else {
 				res := messageResponse(msg)
-				logger.Info("success send")
+				// logger.Info("success send")
 				c.Write(string(res))
 			}
 

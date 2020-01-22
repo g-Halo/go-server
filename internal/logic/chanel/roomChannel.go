@@ -3,12 +3,15 @@ package chanel
 import (
 	"github.com/g-Halo/go-server/internal/logic/model"
 	"github.com/g-Halo/go-server/pkg/storage"
+	"sync"
 )
 
 type RoomChan struct {
 	RoomId           string
 	MsgChan          chan *model.Message
 	UserDispatchChan map[string]chan *model.Message // 负责分发给某个用户
+
+	mutex *sync.Mutex
 }
 
 func NewRoomChan(RoomId string) *RoomChan {
@@ -16,6 +19,7 @@ func NewRoomChan(RoomId string) *RoomChan {
 		RoomId:           RoomId,
 		MsgChan:          make(chan *model.Message, 512),
 		UserDispatchChan: map[string]chan *model.Message{},
+		mutex:            &sync.Mutex{},
 	}
 
 	room := storage.GetRoom(RoomId)
@@ -41,8 +45,8 @@ func NewRoomChan(RoomId string) *RoomChan {
 
 func (rc *RoomChan) PushMsg(room *model.Room, message *model.Message) {
 	rc.MsgChan <- message
-	room.Messages = append(room.Messages, message)
-	storage.UpdateRoom(room)
+	roomMsg := storage.GetRoomMsg(room.UUID)
+	roomMsg.AddMessage(message)
 }
 
 func (rc *RoomChan) GetMsg(key string) *model.Message {

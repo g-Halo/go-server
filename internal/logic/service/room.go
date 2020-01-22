@@ -28,8 +28,9 @@ func (*roomService) FindOrCreate(usernames []string) *model.Room {
 
 	var Room model.Room
 	uuid := uuid.NewV4()
-	room := Room.New(uuid.String(), usernames)
+	room, roomMsg := Room.New(uuid.String(), usernames)
 	storage.AddRoom(room)
+	storage.AddRoomMsg(roomMsg)
 	return room
 }
 
@@ -46,6 +47,7 @@ func (s *roomService) Push(sender_username, receiver_username string, data strin
 		return errors.New("Room Not Found")
 	}
 
+	rChan, _ := chanel.RoomChannels.Get(room.UUID)
 	currentUser.Rooms = append(currentUser.Rooms, room)
 	user.Rooms = append(user.Rooms, room)
 	storage.UpdateUser(currentUser)
@@ -53,7 +55,6 @@ func (s *roomService) Push(sender_username, receiver_username string, data strin
 
 	var Message model.Message
 	msg := Message.Create(currentUser, user, *room, data)
-	rChan, _ := chanel.RoomChannels.Get(room.UUID)
 	rChan.PushMsg(room, msg)
 
 	return nil

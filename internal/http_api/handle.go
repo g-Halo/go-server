@@ -184,7 +184,9 @@ func GetMessages(w http.ResponseWriter, req *http.Request, currentUser *model.Us
 	// 2. 从 DB 拉取历史聊天记录
 	var chatData []map[string]interface{}
 	chatData = make([]map[string]interface{}, 0)
-	for _, msg := range room.Messages {
+
+	rmsg := storage.GetRoomMsg(room.UUID)
+	for _, msg := range rmsg.Messages {
 		chatData = append(chatData, map[string]interface{}{
 			"recipient":  msg.Recipient,
 			"sender":     msg.Sender,
