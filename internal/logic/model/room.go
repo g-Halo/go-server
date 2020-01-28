@@ -6,7 +6,7 @@ import (
 
 type Room struct {
 	UUID      string    `json:"uuid"`
-	Name      string    `json:"salt"`
+	Name      string    `json:"name"`
 	Members   []string  `json:"members"`
 	Type      string    `json:"type"`
 	CreatedAt time.Time `json:"created_at"`

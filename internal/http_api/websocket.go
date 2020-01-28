@@ -3,7 +3,6 @@ package http_api
 import (
 	"encoding/json"
 	"github.com/g-Halo/go-server/internal/logic/chanel"
-	"github.com/g-Halo/go-server/internal/logic/service"
 	"io"
 	"log"
 	"net/http"
@@ -12,7 +11,6 @@ import (
 
 	"github.com/g-Halo/go-server/internal/logic/model"
 	"github.com/g-Halo/go-server/pkg/logger"
-	"github.com/g-Halo/go-server/pkg/storage"
 	"github.com/gorilla/websocket"
 )
 
@@ -67,7 +65,8 @@ func serveWs(w http.ResponseWriter, r *http.Request) {
 	// token 校验，获取 params token，校验是否存在用户
 	username := "test1"
 
-	currentUser := service.UserService.FindByUsername(username)
+
+	currentUser := getUser(username)
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		logger.Fatal(err)
@@ -143,7 +142,7 @@ func (c *Client) writePump() {
 	}()
 
 	for {
-		user := storage.GetUser(c.user.Username)
+		user := getUser(c.user.Username)
 		if user == nil {
 			continue
 		}
@@ -167,8 +166,8 @@ func (c *Client) writePump() {
 }
 
 func messageResponse(message *model.Message) []byte {
-	sender := service.UserService.FindByUsername(message.Sender)
-	receiver := service.UserService.FindByUsername(message.Recipient)
+	sender := getUser(message.Sender)
+	receiver := getUser(message.Recipient)
 
 	res, err := json.Marshal(struct {
 		Sender   map[string]interface{} `json:"sender"`

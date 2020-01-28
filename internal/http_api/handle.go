@@ -3,13 +3,12 @@ package http_api
 import (
 	"context"
 	"encoding/json"
-	"github.com/g-Halo/go-server/internal/logic/service"
+	"github.com/g-Halo/go-server/pkg/logger"
 	"github.com/g-Halo/go-server/pkg/pb"
 	"github.com/g-Halo/go-server/pkg/rpc_client"
 	"net/http"
 	"net/url"
-
-	"github.com/g-Halo/go-server/pkg/storage"
+	"time"
 
 	"github.com/g-Halo/go-server/internal/logic/model"
 	"github.com/g-Halo/go-server/pkg/util"
@@ -57,13 +56,51 @@ func ValidateToken(tokenString string) (*model.User, bool) {
 	}
 
 	if r.GetCode() == util.Success {
-		username := r.GetUsername()
-		user := service.UserService.FindByUsername(username)
+		user := getUser(r.GetUsername())
 		if user != nil {
 			return user, true
 		}
 	}
 	return nil, false
+}
+
+func getUser(username string) *model.User {
+	userResp, err := rpc_client.LogicClient.GetUser(context.Background(), &pb.GetUserReq{
+		Username:             username,
+	})
+
+	if err != nil {
+		logger.Error(err)
+		return nil
+	}
+
+	if userResp == nil {
+		return nil
+	}
+
+	user := &model.User{
+		Username:    userResp.User.Username,
+		NickName:    userResp.User.Nickname,
+	}
+	return user
+}
+
+func getRoom(currentUsername, targetUsername string) *model.Room {
+	r, err := rpc_client.LogicClient.FindOrCreateRoom(context.Background(), &pb.FindOrCreateRoomReq{
+		CurrentUsername:      currentUsername,
+		TargetUsername:       targetUsername,
+	})
+	if err != nil {
+		logger.Error(err)
+		return nil
+	}
+
+	return &model.Room{
+		UUID:      r.Uuid,
+		Name:      r.Name,
+		Members:   []string{currentUsername, targetUsername},
+		Type:      r.Type,
+	}
 }
 
 func validateParams(params url.Values, keys []string) bool {
@@ -108,7 +145,11 @@ func loginHandler(w http.ResponseWriter, req *http.Request, ps httprouter.Params
 		return renderError("参数有误"), err
 	}
 
-	user := service.UserService.FindByUsername(params.Username)
+	user := getUser(params.Username)
+	if user == nil {
+		return renderError("无效的用户"), nil
+	}
+
 	r, err := rpc_client.AuthClient.SignIn(context.Background(), &pb.AuthReq{
 		Username:             params.Username,
 		Passowrd:             params.Password,
@@ -132,7 +173,19 @@ func loginHandler(w http.ResponseWriter, req *http.Request, ps httprouter.Params
 
 // 获取联系人列表
 func GetContacts(w http.ResponseWriter, req *http.Request, currentUser *model.User) (interface{}, error) {
-	users := service.UserService.GetUsers()
+	resp, err := rpc_client.LogicClient.GetUsers(context.Background(), &pb.GetUsersReq{})
+	if err != nil {
+		logger.Error(err)
+		return renderError("无法获取联系人"), err
+	}
+
+	var users []*model.User
+	for _, u := range resp.Users {
+		users = append(users, &model.User{
+			Username:    u.Username,
+			NickName:    u.Nickname,
+		})
+	}
 
 	var data []map[string]interface{}
 	for _, user := range users {
@@ -140,7 +193,7 @@ func GetContacts(w http.ResponseWriter, req *http.Request, currentUser *model.Us
 			continue
 		}
 
-		room := service.RoomService.FindOrCreate([]string{currentUser.Username, user.Username})
+		room := getRoom(currentUser.Username, user.Username)
 		if room == nil {
 			continue
 		}
@@ -168,31 +221,39 @@ func GetMessages(w http.ResponseWriter, req *http.Request, currentUser *model.Us
 		return renderError("无效的用户"), nil
 	}
 
-	user := service.UserService.FindByUsername(username)
+	user := getUser(username)
 	if user == nil {
-		return renderError("User not found"), nil
+		return renderError("无效的用户"), nil
 	}
-
 	// 获取他们之间的聊天消息内容
 	// 1. 获取他们之间的房间号
 	roomID := req.URL.Query().Get("room_id")
-	room := storage.GetRoom(roomID)
-	if room == nil {
+	pbRoom, _ := rpc_client.LogicClient.GetRoomById(context.Background(), &pb.GetRoomByIdReq{Uuid: roomID})
+	if pbRoom == nil {
 		return renderError("Room not found"), nil
+	}
+	room := &model.Room{
+		UUID:      pbRoom.Uuid,
+		Name:      pbRoom.Name,
+		Members:   pbRoom.Members,
+		Type:      pbRoom.Type,
+		CreatedAt: time.Unix(pbRoom.CreatedAt, 0),
 	}
 
 	// 2. 从 DB 拉取历史聊天记录
 	var chatData []map[string]interface{}
 	chatData = make([]map[string]interface{}, 0)
 
-	rmsg := storage.GetRoomMsg(room.UUID)
-	for _, msg := range rmsg.Messages {
+	m, _ := rpc_client.LogicClient.GetRoomMessages(context.Background(), &pb.GetRoomMessagesReq{
+		Uuid:                 roomID,
+	})
+	for _, msg := range m.RoomMessages {
 		chatData = append(chatData, map[string]interface{}{
 			"recipient":  msg.Recipient,
 			"sender":     msg.Sender,
 			"body":       msg.Body,
-			"created_at": msg.CreatedAt,
-			"status":     "check",
+			"created_at": time.Unix(msg.CreatedAt, 0),
+			"status":     msg.Status,
 		})
 	}
 
@@ -221,14 +282,15 @@ func CreateRoom(w http.ResponseWriter, req *http.Request, currentUser *model.Use
 		return renderError("User Not Found"), nil
 	}
 
-	user := service.UserService.FindByUsername(params.Username)
+	user := getUser(params.Username)
 	if user == nil {
 		return renderError("User Not Found"), nil
 	} else if user.Username == currentUser.Username {
 		return renderError("TargetUser can not be yourself"), nil
 	}
 
-	room := service.RoomService.FindOrCreate([]string{currentUser.Username, user.Username})
+
+	room := getRoom(currentUser.Username, user.Username)
 	if room == nil {
 		return renderError("房间创建失败"), nil
 	}

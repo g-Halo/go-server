@@ -11,6 +11,85 @@ message PushMessageReq {
 
 message PushMessageResp {}
 
+message User {
+    string username = 1;
+    string nickname = 2;
+}
+
+message Room {
+    string uuid = 1;
+    string name = 2;
+    repeated string members = 3;
+    string type = 4;
+    int64 created_at = 5;
+}
+
+message GetUserReq {
+    string username = 1;
+}
+
+message GetUserResp {
+    User user = 1;
+}
+
+message GetUsersReq {
+}
+
+message GetUsersResp {
+    repeated User users = 1;
+}
+
+message FindOrCreateRoomReq {
+    string current_username = 1;
+    string target_username = 2;
+}
+
+message FindOrCreateRoomResp {
+    string uuid = 1;
+    string name = 2;
+    string type = 3;
+}
+
+message GetRoomByIdReq {
+    string uuid = 1;
+}
+
+message GetRoomByIdResp {
+    string uuid = 1;
+    string name = 2;
+    repeated string members = 3;
+    string type = 4;
+    int64 created_at = 5;
+}
+
+message GetRoomMessagesReq {
+    string uuid = 1;
+}
+
+message RoomMessage {
+    string uuid = 1;
+    string sender = 2;
+    string recipient = 3;
+    string body = 4;
+    string status = 5;
+    int64 created_at = 6;
+}
+
+message GetRoomMessagesResp {
+    repeated RoomMessage roomMessages = 1;
+}
+
 service Logic {
+    // 发送消息
     rpc PushMessage(PushMessageReq) returns (PushMessageResp);
+    // 获取某用户
+    rpc GetUser(GetUserReq) returns (GetUserResp);
+    // 获取所有用户
+    rpc GetUsers(GetUsersReq) returns (GetUsersResp);
+    // 查找房间（如果不存在则创建）
+    rpc FindOrCreateRoom(FindOrCreateRoomReq) returns(FindOrCreateRoomResp);
+    // 根据 UUID 查找房间
+    rpc GetRoomById(GetRoomByIdReq) returns(GetRoomByIdResp);
+    // 获取房间消息
+    rpc GetRoomMessages(GetRoomMessagesReq) returns(GetRoomMessagesResp);
 }
