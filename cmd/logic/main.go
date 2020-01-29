@@ -9,6 +9,7 @@ import (
 	"github.com/g-Halo/go-server/pkg/logger"
 	"github.com/g-Halo/go-server/pkg/pb"
 	"github.com/g-Halo/go-server/pkg/storage"
+	"github.com/g-Halo/go-server/pkg/util"
 	"google.golang.org/grpc"
 	"net"
 )
@@ -37,6 +38,7 @@ func init() {
 
 func main() {
 	go func() {
+		defer util.RecoverPanic()
 		// grpc Auth Logic
 		lis, err := net.Listen("tcp", conf.Conf.AuthRPCAddress)
 		if err != nil {
@@ -51,6 +53,7 @@ func main() {
 	}()
 
 	go func() {
+		defer util.RecoverPanic()
 		lis, err := net.Listen("tcp", conf.Conf.LogicRPCAddress)
 		if err != nil {
 			panic(err)

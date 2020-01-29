@@ -39,10 +39,10 @@ func InitLogger(logPath string, loglevel string) *zap.Logger {
 	)
 
 	// 开启开发模式，堆栈跟踪
-	caller := zap.AddCaller()
+	//caller := zap.AddCaller()
 	// 开启文件及行号
-	development := zap.Development()
-	logger := zap.New(core, caller, development)
+	//development := zap.Development()
+	logger := zap.New(core)
 
 	// register to logger Instance
 	Instance = logger.Sugar()

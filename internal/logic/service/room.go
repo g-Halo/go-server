@@ -34,9 +34,9 @@ func (*roomService) FindOrCreate(usernames []string) *model.Room {
 	return room
 }
 
-func (s *roomService) Push(sender_username, receiver_username string, data string) error {
-	currentUser := UserService.FindByUsername(sender_username)
-	user := UserService.FindByUsername(receiver_username)
+func (s *roomService) Push(senderUsername, receiverUsername string, data string) error {
+	currentUser := UserService.FindByUsername(senderUsername)
+	user := UserService.FindByUsername(receiverUsername)
 
 	if user == nil || currentUser == nil {
 		return errors.New("User Not Found")

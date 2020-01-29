@@ -11,7 +11,7 @@ type LogicServer struct {}
 
 func (s *LogicServer) PushMessage(ctx context.Context, in *pb.PushMessageReq) (*pb.PushMessageResp, error) {
 	err := service.RoomService.Push(in.GetSenderUsername(), in.GetReceiverUsername(), in.GetBody())
-	return nil, err
+	return &pb.PushMessageResp{}, err
 }
 
 func (s *LogicServer) GetUser(ctx context.Context, in *pb.GetUserReq) (*pb.GetUserResp, error) {
