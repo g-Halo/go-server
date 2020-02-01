@@ -1,8 +1,10 @@
 package http_api
 
 import (
+	"context"
 	"encoding/json"
-	"github.com/g-Halo/go-server/internal/logic/chanel"
+	"github.com/g-Halo/go-server/pkg/pb"
+	"github.com/g-Halo/go-server/pkg/rpc_client"
 	"io"
 	"log"
 	"net/http"
@@ -141,23 +143,25 @@ func (c *Client) writePump() {
 		c.Close()
 	}()
 
+
 	for {
 		user := getUser(c.user.Username)
 		if user == nil {
+			logger.Error("无效的用户")
 			continue
 		}
-
 		for _, room := range user.Rooms {
-			rChan, _ := chanel.RoomChannels.Get(room.UUID)
-
-			msg := rChan.GetMsg(c.user.Username)
+			msg, e := rpc_client.LogicClient.KeepGetMessage(context.Background(), &pb.KeepGetMessageReq{Username: user.Username, Uuid: room.UUID})
+			logger.Error(e)
+			logger.Debug(msg)
 			// logger.Info(msg)
 			if msg == nil {
 				continue
 			} else {
-				res := messageResponse(msg)
+				//res := messageResponse(msg)
 				// logger.Info("success send")
-				c.Write(string(res))
+				logger.Debug(msg)
+				//c.Write(string(msg))
 			}
 
 		}

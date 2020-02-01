@@ -2,6 +2,8 @@ package logic
 
 import (
 	"context"
+	"errors"
+	"github.com/g-Halo/go-server/internal/logic/chanel"
 	"github.com/g-Halo/go-server/internal/logic/service"
 	"github.com/g-Halo/go-server/pkg/pb"
 	"github.com/g-Halo/go-server/pkg/storage"
@@ -20,10 +22,22 @@ func (s *LogicServer) GetUser(ctx context.Context, in *pb.GetUserReq) (*pb.GetUs
 		return nil, nil
 	}
 
+	var rooms []*pb.Room
+	for _, room := range user.Rooms {
+		rooms = append(rooms, &pb.Room{
+			Uuid:                 room.UUID,
+			Name:                 room.Name,
+			Members:              room.Members,
+			Type:                 room.Type,
+			CreatedAt:            room.CreatedAt.Unix(),
+		})
+	}
+
 	pbUser := &pb.GetUserResp{
 		User:                 &pb.User{
 			Username:             user.Username,
 			Nickname:             user.NickName,
+			Rooms:				  rooms,
 		},
 	}
 	return pbUser, nil
@@ -88,4 +102,49 @@ func (s *LogicServer) GetRoomMessages(ctx context.Context, in *pb.GetRoomMessage
 		RoomMessages: roomMessages,
 	}
 	return res, nil
+}
+
+func (s *LogicServer) KeepGetMessage(ctx context.Context, in *pb.KeepGetMessageReq) (*pb.KeepGetMessageResp, error) {
+	rChan, _ := chanel.RoomChannels.Get(in.GetUuid())
+	msg := rChan.GetMsg(in.GetUsername())
+	if msg == nil {
+		return &pb.KeepGetMessageResp{}, errors.New("没有更多的消息了")
+	}
+
+	var msgItems []*pb.KeepGetMessageItem
+
+	// TODO: ------ 批量获取未读消息，合并发送 -------
+	room := service.RoomService.FindByUUID(in.GetUuid())
+	sender := service.UserService.FindByUsername(msg.Sender)
+	receiver := service.UserService.FindByUsername(msg.Recipient)
+	msgItems = append(msgItems, &pb.KeepGetMessageItem{
+		Body:                 msg.Body,
+		Recipient:            &pb.User{
+			Username:             receiver.Username,
+			Nickname:             receiver.NickName,
+		},
+		Sender:               &pb.User{
+			Username:             sender.Username,
+			Nickname:             sender.NickName,
+		},
+		CreatedAt:            msg.CreatedAt.Unix(),
+		Status:               msg.Status,
+	})
+	// ------ 批量获取未读消息，合并发送 -------
+
+	resp := &pb.KeepGetMessageResp{
+		Sender:               &pb.User{
+			Username:             receiver.Username,
+			Nickname:             receiver.NickName,
+		},
+		Accepter:             &pb.User{
+			Username:             sender.Username,
+			Nickname:             sender.NickName,
+		},
+		Room:                 &pb.Room{
+			Uuid:                 room.UUID,
+		},
+		Messages:             msgItems,
+	}
+	return resp, nil
 }

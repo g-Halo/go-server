@@ -14,6 +14,7 @@ message PushMessageResp {}
 message User {
     string username = 1;
     string nickname = 2;
+    repeated Room rooms = 3;
 }
 
 message Room {
@@ -79,6 +80,26 @@ message GetRoomMessagesResp {
     repeated RoomMessage roomMessages = 1;
 }
 
+message KeepGetMessageReq {
+    string uuid = 1;
+    string username = 2;
+}
+
+message KeepGetMessageItem {
+    string body = 1;
+    User recipient = 2;
+    User sender = 3;
+    int64 createdAt = 4;
+    string status = 5;
+}
+
+message KeepGetMessageResp {
+    User sender = 1;
+    User accepter = 2;
+    Room room = 3;
+    repeated KeepGetMessageItem messages = 4;
+}
+
 service Logic {
     // 发送消息
     rpc PushMessage(PushMessageReq) returns (PushMessageResp);
@@ -90,6 +111,8 @@ service Logic {
     rpc FindOrCreateRoom(FindOrCreateRoomReq) returns(FindOrCreateRoomResp);
     // 根据 UUID 查找房间
     rpc GetRoomById(GetRoomByIdReq) returns(GetRoomByIdResp);
-    // 获取房间消息
+    // 获取房间的所有消息(用于初始化消息)
     rpc GetRoomMessages(GetRoomMessagesReq) returns(GetRoomMessagesResp);
+    // 持续获取房间的动态消息
+    rpc KeepGetMessage(KeepGetMessageReq) returns (KeepGetMessageResp);
 }

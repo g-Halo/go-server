@@ -5,6 +5,7 @@ import (
 	"github.com/g-Halo/go-server/internal/http_api"
 	"github.com/g-Halo/go-server/pkg/logger"
 	"github.com/g-Halo/go-server/pkg/rpc_client"
+	"github.com/g-Halo/go-server/pkg/storage"
 	"net"
 	"net/http"
 	"strings"
@@ -15,6 +16,8 @@ func init() {
 	logger.InitLogger("./application.log", "debug")
 	// 初始化配置文件
 	conf.LoadConf()
+	// 初始化存储器
+	storage.NewStorage()
 }
 
 func Serve(listener net.Listener, handler http.Handler, proto string) error {

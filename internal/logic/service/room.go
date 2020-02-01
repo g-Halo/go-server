@@ -59,3 +59,7 @@ func (s *roomService) Push(senderUsername, receiverUsername string, data string)
 
 	return nil
 }
+
+func (s *roomService) FindByUUID(uuid string) *model.Room {
+	return storage.GetRoom(uuid)
+}
