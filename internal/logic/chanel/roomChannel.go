@@ -25,7 +25,9 @@ func NewRoomChan(RoomId string) *RoomChan {
 	room := storage.GetRoom(RoomId)
 	if room != nil {
 		for _, username := range room.Members {
-			rc.UserDispatchChan[username] = make(chan *model.Message, 512)
+			if _, ok := rc.UserDispatchChan[username]; !ok {
+				rc.UserDispatchChan[username] = make(chan *model.Message, 512)
+			}
 		}
 	}
 
@@ -47,6 +49,7 @@ func (rc *RoomChan) PushMsg(room *model.Room, message *model.Message) {
 	rc.MsgChan <- message
 	roomMsg := storage.GetRoomMsg(room.UUID)
 	roomMsg.AddMessage(message)
+	storage.AddRoomMsg(roomMsg)
 }
 
 func (rc *RoomChan) GetMsg(key string) *model.Message {

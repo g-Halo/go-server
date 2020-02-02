@@ -15,11 +15,13 @@ type Storage struct {
 var redisCli *redis.Client
 
 func NewStorage() {
-	redisCli = redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
-		Password: "", // no password set
-		DB:       0,  // use default DB
-	})
+	if redisCli == nil {
+		redisCli = redis.NewClient(&redis.Options{
+			Addr:     "localhost:6379",
+			Password: "", // no password set
+			DB:       0,  // use default DB
+		})
+	}
 }
 
 func AddUser(user *model.User) {
@@ -64,9 +66,9 @@ func AddRoom(room *model.Room) {
 	redisCli.HSet("rooms", room.UUID, v)
 }
 
-func AddRoomMsg(rmsg *model.RoomMessage) {
-	v, _ := json.Marshal(rmsg)
-	redisCli.HSet("room_msgs", rmsg.UUID, v)
+func AddRoomMsg(msg *model.RoomMessage) {
+	v, _ := json.Marshal(msg)
+	redisCli.HSet("room_msgs", msg.UUID, v)
 }
 
 func GetRoomMsg(key string) (roomMsg *model.RoomMessage) {

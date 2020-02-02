@@ -6,6 +6,7 @@ import (
 	"github.com/g-Halo/go-server/pkg/logger"
 	"github.com/g-Halo/go-server/pkg/pb"
 	"github.com/g-Halo/go-server/pkg/rpc_client"
+	"github.com/g-Halo/go-server/pkg/storage"
 	"net/http"
 	"net/url"
 	"time"
@@ -65,23 +66,24 @@ func ValidateToken(tokenString string) (*model.User, bool) {
 }
 
 func getUser(username string) *model.User {
-	userResp, err := rpc_client.LogicClient.GetUser(context.Background(), &pb.GetUserReq{
-		Username:             username,
-	})
-
-	if err != nil {
-		logger.Error(err)
-		return nil
-	}
-
-	if userResp == nil {
-		return nil
-	}
-
-	user := &model.User{
-		Username:    userResp.User.Username,
-		NickName:    userResp.User.Nickname,
-	}
+	//userResp, err := rpc_client.LogicClient.GetUser(context.Background(), &pb.GetUserReq{
+	//	Username:             username,
+	//})
+	//
+	//if err != nil {
+	//	logger.Error(err)
+	//	return nil
+	//}
+	//
+	//if userResp == nil {
+	//	return nil
+	//}
+	//
+	//user := &model.User{
+	//	Username:    userResp.User.Username,
+	//	NickName:    userResp.User.Nickname,
+	//}
+	user := storage.GetUser(username)
 	return user
 }
 

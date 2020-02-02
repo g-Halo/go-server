@@ -20,7 +20,7 @@ func init() {
 	storage.NewStorage()
 }
 
-func Serve(listener net.Listener, handler http.Handler, proto string) error {
+func serve(listener net.Listener, handler http.Handler, proto string) error {
 	server := &http.Server{
 		Handler:  handler,
 	}
@@ -40,6 +40,6 @@ func main() {
 		logger.Fatal("error")
 	}
 	logger.Infof("start Listen web api in %s", conf.Conf.HttpApiAddress)
-	Serve(httpListener, http_api.StartServer(), "HTTP")
+	serve(httpListener, http_api.StartServer(), "HTTP")
 }
 

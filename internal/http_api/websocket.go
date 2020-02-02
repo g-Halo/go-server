@@ -1,12 +1,7 @@
 package http_api
 
 import (
-	"context"
-	"encoding/json"
-	"github.com/g-Halo/go-server/pkg/pb"
-	"github.com/g-Halo/go-server/pkg/rpc_client"
 	"io"
-	"log"
 	"net/http"
 	"sync"
 	"time"
@@ -46,56 +41,112 @@ type WsResponse struct {
 }
 
 const (
-	// Time allowed to write a message to the peer.
-	writeWait = 10 * time.Second
-
 	// Time allowed to read the next pong message from the peer.
-	pongWait = 60 * time.Second
+	pongWait = 120 * time.Second
 
 	// Send pings to peer with this period. Must be less than pongWait.
 	pingPeriod = (pongWait * 9) / 10
 
 	// Maximum message size allowed from peer.
 	maxMessageSize = 512
-
-	minHearbeatSec = 30
-
-	Second = int64(time.Second)
 )
 
 func serveWs(w http.ResponseWriter, r *http.Request) {
 	// token 校验，获取 params token，校验是否存在用户
-	username := "test1"
-
+	username := r.URL.Query().Get("username")
+	if username == "" {
+		w.Write([]byte("not sign in"))
+		return
+	}
 
 	currentUser := getUser(username)
+	if currentUser == nil {
+		w.Write([]byte("-p\r\n"))
+		return
+	}
+
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		logger.Fatal(err)
 	}
-
 	wsWrite, err := conn.NextWriter(websocket.TextMessage)
-	if currentUser == nil {
-		errorMsg := []byte("-p\r\n")
-		wsWrite.Write(errorMsg)
-	}
-
 	client := &Client{
 		user:   currentUser,
 		conn:   conn,
 		writer: wsWrite,
 	}
 
-	// 注册 heartbeat
-	// heartBeat := r.URL.Query().Get("heartbeat")
-	// heartBeatTime, err := strconv.Atoi(heartBeat)
-	// if err != nil || heartBeatTime < minHearbeatSec {
-	// 	wsWrite.Write([]byte("-p\r\n"))
-	// }
 
-	go client.writePump()
-	// go client.readPump()
+	go client.Done()
 }
+
+func (c *Client) Done() {
+	ticker := time.NewTicker(pingPeriod)
+	defer func() {
+		ticker.Stop()
+		c.Close()
+	}()
+
+	for {
+		c.conn.SetReadLimit(maxMessageSize)
+		c.conn.SetReadDeadline(time.Now().Add(pongWait))
+		_, _, err := c.conn.ReadMessage()
+		if err != nil {
+			logger.Error(err)
+		}
+
+		//for _, room := range user.Rooms {
+		//	msg, _ := rpc_client.LogicClient.KeepGetMessage(context.Background(), &pb.KeepGetMessageReq{Username: user.Username, Uuid: room.UUID})
+		//	if msg == nil {
+		//		continue
+		//	} else {
+		//		message, _ := json.Marshal(msg)
+		//		w, err := c.conn.NextWriter(websocket.TextMessage)
+		//		if err != nil {
+		//			logger.Error(err)
+		//			c.Close()
+		//		}
+		//		logger.Debugf("test: %s", message)
+		//		w.Write(message)
+		//	}
+		//}
+	}
+}
+
+func (c *Client) Output() {
+
+}
+
+//func messageResponse(message *model.Message) []byte {
+//	sender := getUser(message.Sender)
+//	receiver := getUser(message.Recipient)
+//
+//	res, err := json.Marshal(struct {
+//		Sender   map[string]interface{} `json:"sender"`
+//		Accepter map[string]interface{} `json:"accepter"`
+//		Room     map[string]string      `json:"room"`
+//		Message  map[string]interface{} `json:"message"`
+//	}{
+//		Sender:   sender.ToJson(),
+//		Accepter: receiver.ToJson(),
+//		Room: map[string]string{
+//			"uuid": message.Room.UUID,
+//		},
+//		Message: map[string]interface{}{
+//			"body":       message.Body,
+//			"recipient":  receiver.ToJson(),
+//			"sender":     sender.ToJson(),
+//			"created_at": message.CreatedAt,
+//			"status":     message.Status,
+//		},
+//	})
+//
+//	if err != nil {
+//		logger.Error("message response json error")
+//	}
+//
+//	return res
+//}
 
 func (c *Client) Write(message string) {
 	w, err := c.conn.NextWriter(websocket.TextMessage)
@@ -104,100 +155,6 @@ func (c *Client) Write(message string) {
 		c.Close()
 	}
 	w.Write([]byte(message))
-}
-
-func (c *Client) readPump() {
-	defer func() {
-		c.conn.Close()
-	}()
-	c.conn.SetReadLimit(maxMessageSize)
-	c.conn.SetReadDeadline(time.Now().Add(pongWait))
-	c.conn.SetPongHandler(func(string) error { c.conn.SetReadDeadline(time.Now().Add(pongWait)); return nil })
-
-	begin := time.Now().UnixNano()
-	end := begin + Second
-	for {
-		c.writer.Write([]byte("+h\r\n"))
-		if end-begin >= Second {
-			// 超过 1s 重置定时器?
-		}
-		_, message, err := c.conn.ReadMessage()
-		if err != nil {
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("error: %v", err)
-			}
-			break
-		}
-
-		if string(message) == "h" {
-			// 回应给 客户端
-			c.writer.Write([]byte("+h\r\n"))
-		}
-	}
-}
-
-func (c *Client) writePump() {
-	ticker := time.NewTicker(pingPeriod)
-	defer func() {
-		ticker.Stop()
-		c.Close()
-	}()
-
-
-	for {
-		user := getUser(c.user.Username)
-		if user == nil {
-			logger.Error("无效的用户")
-			continue
-		}
-		for _, room := range user.Rooms {
-			msg, e := rpc_client.LogicClient.KeepGetMessage(context.Background(), &pb.KeepGetMessageReq{Username: user.Username, Uuid: room.UUID})
-			logger.Error(e)
-			logger.Debug(msg)
-			// logger.Info(msg)
-			if msg == nil {
-				continue
-			} else {
-				//res := messageResponse(msg)
-				// logger.Info("success send")
-				logger.Debug(msg)
-				//c.Write(string(msg))
-			}
-
-		}
-
-	}
-}
-
-func messageResponse(message *model.Message) []byte {
-	sender := getUser(message.Sender)
-	receiver := getUser(message.Recipient)
-
-	res, err := json.Marshal(struct {
-		Sender   map[string]interface{} `json:"sender"`
-		Accepter map[string]interface{} `json:"accepter"`
-		Room     map[string]string      `json:"room"`
-		Message  map[string]interface{} `json:"message"`
-	}{
-		Sender:   sender.ToJson(),
-		Accepter: receiver.ToJson(),
-		Room: map[string]string{
-			"uuid": message.Room.UUID,
-		},
-		Message: map[string]interface{}{
-			"body":       message.Body,
-			"recipient":  receiver.ToJson(),
-			"sender":     sender.ToJson(),
-			"created_at": message.CreatedAt,
-			"status":     message.Status,
-		},
-	})
-
-	if err != nil {
-		logger.Error("message response json error")
-	}
-
-	return res
 }
 
 func (c *Client) Close() {
