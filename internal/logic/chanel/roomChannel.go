@@ -1,7 +1,10 @@
 package chanel
 
 import (
+	"context"
 	"github.com/g-Halo/go-server/internal/logic/model"
+	"github.com/g-Halo/go-server/pkg/pb"
+	"github.com/g-Halo/go-server/pkg/rpc_client"
 	"github.com/g-Halo/go-server/pkg/storage"
 	"sync"
 )
@@ -50,6 +53,28 @@ func (rc *RoomChan) PushMsg(room *model.Room, message *model.Message) {
 	roomMsg := storage.GetRoomMsg(room.UUID)
 	roomMsg.AddMessage(message)
 	storage.AddRoomMsg(roomMsg)
+
+
+	sender := storage.GetUser(message.Sender)
+	acceptor := storage.GetUser(message.Recipient)
+	rpc_client.WsClient.Dispatch(context.Background(), &pb.DispatchReq{
+		Sender:               sender.ToPB(),
+		Accepter:             acceptor.ToPB(),
+		Room:                 &pb.Room{
+			Uuid:                 room.UUID,
+			Name:                 room.Name,
+			Members:              room.Members,
+			Type:                 room.Type,
+			CreatedAt:            room.CreatedAt.Unix(),
+		},
+		Message:              &pb.DispatchMessage{
+			Body:                 message.Body,
+			Recipient:            acceptor.ToPB(),
+			Sender:               sender.ToPB(),
+			CreatedAt:            message.CreatedAt.Unix(),
+			Status:               message.Status,
+		},
+	})
 }
 
 func (rc *RoomChan) GetMsg(key string) *model.Message {

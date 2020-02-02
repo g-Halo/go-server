@@ -8,6 +8,7 @@ import (
 	"github.com/g-Halo/go-server/internal/logic/service"
 	"github.com/g-Halo/go-server/pkg/logger"
 	"github.com/g-Halo/go-server/pkg/pb"
+	"github.com/g-Halo/go-server/pkg/rpc_client"
 	"github.com/g-Halo/go-server/pkg/storage"
 	"github.com/g-Halo/go-server/pkg/util"
 	"google.golang.org/grpc"
@@ -37,6 +38,7 @@ func init() {
 }
 
 func main() {
+	// 注册 Auth 层 RPC
 	go func() {
 		defer util.RecoverPanic()
 		// grpc Auth Logic
@@ -52,6 +54,7 @@ func main() {
 		}
 	}()
 
+	// 注册逻辑层 RPC
 	go func() {
 		defer util.RecoverPanic()
 		lis, err := net.Listen("tcp", conf.Conf.LogicRPCAddress)
@@ -66,6 +69,8 @@ func main() {
 		}
 	}()
 
+	// 连接 websocket 注册的 RPC
+	rpc_client.InitWsClient(conf.Conf.WebSocketAddress)
 	select {}
 
 }

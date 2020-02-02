@@ -4,3 +4,4 @@ config.json
 node_modules
 application.log
 logic.log
+ws_conn.log

@@ -9,6 +9,7 @@ import (
 var (
 	AuthClient pb.AuthClient
 	LogicClient pb.LogicClient
+	WsClient pb.WsConnClient
 )
 
 func InitAuthClient(addr string) {
@@ -27,4 +28,12 @@ func InitLogicClient(addr string) {
 	}
 
 	LogicClient = pb.NewLogicClient(conn)
+}
+
+func InitWsClient(addr string) {
+	conn, err := grpc.DialContext(context.TODO(), addr, grpc.WithInsecure())
+	if err != nil {
+		panic(err)
+	}
+	WsClient = pb.NewWsConnClient(conn)
 }
