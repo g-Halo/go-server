@@ -8,6 +8,8 @@ type Room struct {
 	UUID      string    `json:"uuid"`
 	Name      string    `json:"name"`
 	Members   []string  `json:"members"`
+	Acceptor  string    `json:"acceptor"`
+	Sender    string    `json:"sender"`
 	Type      string    `json:"type"`
 	CreatedAt time.Time `json:"created_at"`
 }
@@ -18,14 +20,15 @@ type RoomMessage struct {
 	// MessageChan chan *Message
 }
 
-func (*Room) New(uuid string, members []string) (*Room, *RoomMessage) {
+func (*Room) New(uuid, sender, acceptor string) (*Room, *RoomMessage) {
+	members := []string{sender, acceptor}
 	room := &Room{
 		UUID:      uuid,
 		Members:   members,
 		Type:      "p2p",
 		CreatedAt: time.Now(),
-		// MessageChan: make(chan *Message, 256),
-		// Messages: make([]*Message, 32), // RPC 不能回传指针
+		Acceptor:  acceptor,
+		Sender:    sender,
 	}
 	rmsg := &RoomMessage{
 		UUID:     uuid,

@@ -4,6 +4,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+
 	"github.com/g-Halo/go-server/pkg/pb"
 
 	"github.com/g-Halo/go-server/pkg/logger"
@@ -84,7 +85,7 @@ func (u *User) ToJson() map[string]interface{} {
 
 func (u *User) ToPB() *pb.User {
 	return &pb.User{
-		Username:             u.Username,
-		Nickname:             u.NickName,
+		Username: u.Username,
+		Nickname: u.NickName,
 	}
 }

@@ -1,16 +1,13 @@
 package chanel
 
 import (
-	"github.com/g-Halo/go-server/conf"
 	"sync"
 
 	h "github.com/g-Halo/go-server/pkg/util/hash"
 )
 
-var RoomChannels *ChannelList
-
 type ChannelBucket struct {
-	Data  map[string]*RoomChan
+	Data  map[string]*UCBuff
 	Index int
 	mutex *sync.Mutex
 }
@@ -24,7 +21,7 @@ func NewChannelList(bucketCount int) *ChannelList {
 	l := &ChannelList{Channels: []*ChannelBucket{}, BucketCount: bucketCount}
 	for i := 0; i < bucketCount; i++ {
 		item := &ChannelBucket{
-			Data:  map[string]*RoomChan{},
+			Data:  map[string]*UCBuff{},
 			Index: i,
 			mutex: &sync.Mutex{},
 		}
@@ -33,19 +30,14 @@ func NewChannelList(bucketCount int) *ChannelList {
 	return l
 }
 
-func InitRoomChan() {
-	RoomChannels = NewChannelList(conf.Conf.RoomChannelsCount)
-}
-
-// 通过用户的 username 哈希到某个 bucket
-func (l *ChannelList) Get(key string) (*RoomChan, *ChannelBucket) {
+func (l *ChannelList) Get(key string) (*UCBuff, *ChannelBucket) {
 	b := l.HashInt(key)
 	b.mutex.Lock()
 	if c, ok := b.Data[key]; ok {
 		b.mutex.Unlock()
 		return c, b
 	} else {
-		c = NewRoomChan(key)
+		c = NewUserChanBuff(key)
 		b.Data[key] = c
 		b.mutex.Unlock()
 		return c, b

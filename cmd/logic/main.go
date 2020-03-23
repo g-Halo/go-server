@@ -1,6 +1,8 @@
 package main
 
 import (
+	"net"
+
 	"github.com/g-Halo/go-server/api/auth"
 	"github.com/g-Halo/go-server/api/logic"
 	"github.com/g-Halo/go-server/conf"
@@ -12,7 +14,6 @@ import (
 	"github.com/g-Halo/go-server/pkg/storage"
 	"github.com/g-Halo/go-server/pkg/util"
 	"google.golang.org/grpc"
-	"net"
 )
 
 func init() {
@@ -23,7 +24,7 @@ func init() {
 	// 初始化内存存储器
 	storage.NewStorage()
 	// 初始化 roomChannel
-	chanel.InitRoomChan()
+	chanel.InitUserChanBuffer()
 	// 初始化测试用户
 	service.UserService.SignUp(map[string]interface{}{
 		"username": "test1",
