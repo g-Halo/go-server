@@ -25,6 +25,7 @@ func init() {
 	storage.NewStorage()
 	// 初始化 roomChannel
 	chanel.InitUserChanBuffer()
+	chanel.InitMessageCachedList()
 	// 初始化测试用户
 	service.UserService.SignUp(map[string]interface{}{
 		"username": "test1",

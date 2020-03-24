@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/g-Halo/go-server/internal/logic/service"
+	"github.com/g-Halo/go-server/pkg/logger"
 	"github.com/g-Halo/go-server/pkg/pb"
 	"github.com/g-Halo/go-server/pkg/storage"
 )
@@ -147,4 +148,15 @@ func (s *LogicServer) KeepGetMessage(ctx context.Context, in *pb.KeepGetMessageR
 	// }
 	// return resp, nil
 	return nil, nil
+}
+
+func (s *LogicServer) UserOnline(ctx context.Context, in *pb.UserOnlineReq) (*pb.UserOnlineResp, error) {
+	logger.Info(in.GetUsername())
+	service.StatisticService.Online(in.GetUsername())
+	return &pb.UserOnlineResp{}, nil
+}
+
+func (s *LogicServer) UserOffline(ctx context.Context, in *pb.UserOnlineReq) (*pb.UserOnlineResp, error) {
+	service.StatisticService.Offline(in.GetUsername())
+	return &pb.UserOnlineResp{}, nil
 }

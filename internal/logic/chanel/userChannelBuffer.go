@@ -5,6 +5,8 @@ import (
 
 	"github.com/g-Halo/go-server/conf"
 	"github.com/g-Halo/go-server/internal/logic/model"
+
+	// "github.com/g-Halo/go-server/internal/logic/service"
 	"github.com/g-Halo/go-server/pkg/storage"
 )
 
@@ -12,15 +14,15 @@ var UserChannelBuffer *ChannelList
 
 type UCBuff struct {
 	Username  string
-	msgLength int
-	head      map[string]*MessageBuffer
-	last      map[string]*MessageBuffer
-	mutex     *sync.Mutex
+	MsgLength int
+	Head      map[string]*MessageBuffer
+	Last      map[string]*MessageBuffer
+	Mutex     *sync.Mutex
 }
 
 type MessageBuffer struct {
-	message *model.Message
-	next    *MessageBuffer
+	Message *model.Message
+	Next    *MessageBuffer
 }
 
 func InitUserChanBuffer() {
@@ -30,10 +32,10 @@ func InitUserChanBuffer() {
 func NewUserChanBuff(Username string) *UCBuff {
 	buff := &UCBuff{
 		Username:  Username,
-		msgLength: 0,
-		head:      make(map[string]*MessageBuffer, 128),
-		last:      make(map[string]*MessageBuffer, 128),
-		mutex:     &sync.Mutex{},
+		MsgLength: 0,
+		Head:      make(map[string]*MessageBuffer, 128),
+		Last:      make(map[string]*MessageBuffer, 128),
+		Mutex:     &sync.Mutex{},
 	}
 	return buff
 }
@@ -41,52 +43,29 @@ func NewUserChanBuff(Username string) *UCBuff {
 func (buff *UCBuff) PushMessage(room *model.Room, message *model.Message) {
 	// 1. 把消息记录到接收方的消息链表
 	acceptorBuff, _ := UserChannelBuffer.Get(room.Acceptor)
-	acceptorBuff.mutex.Lock()
+	acceptorBuff.Mutex.Lock()
 
 	buffLink := &MessageBuffer{
-		message: message,
-		next:    nil,
+		Message: message,
+		Next:    nil,
 	}
-	if acceptorBuff.head == nil {
-		acceptorBuff.head[room.Sender] = buffLink
+	if acceptorBuff.Head == nil {
+		acceptorBuff.Head[room.Sender] = buffLink
 	}
-	lastNode := acceptorBuff.last
+	lastNode := acceptorBuff.Last
 	if lastNode[room.Sender] == nil {
 		lastNode[room.Sender] = buffLink
 	} else {
-		lastNode[room.Sender].next = buffLink
-		acceptorBuff.last[room.Sender] = buffLink
+		lastNode[room.Sender].Next = buffLink
+		acceptorBuff.Last[room.Sender] = buffLink
 	}
-	acceptorBuff.msgLength += 1
-	acceptorBuff.mutex.Unlock()
+	acceptorBuff.MsgLength += 1
+	acceptorBuff.Mutex.Unlock()
 	// 记录此消息到数据存储器
 	rmsg := storage.GetRoomMsg(room.UUID)
 	rmsg.AddMessage(message)
 	// 记录发送方的消息顺序Cache
-	MessageCachedList.Put(room.Sender, message)
+	MsgCachedPut(room.Sender, room.UUID, message)
 	// 记录接收方的消息顺序Cache
-	MessageCachedList.Put(room.Acceptor, message)
-}
-
-func Subscribe(username string) {
-	buff, _ := UserChannelBuffer.Get(username)
-	for {
-		// 检查是否下线
-		if buff.msgLength == 0 {
-			continue
-		} else {
-			messages := make([]*model.Message, buff.msgLength)
-			buff.mutex.Lock()
-			headNode := buff.head[username]
-			lastNode := buff.last[username]
-			buff.mutex.Unlock()
-
-			for headNode != nil && headNode != lastNode {
-				messages = append(messages, headNode.message)
-				headNode = headNode.next
-			}
-			// TODO: 一次性发送给消息订阅者，并且存储到 msgcache
-
-		}
-	}
+	MsgCachedPut(room.Acceptor, room.UUID, message)
 }

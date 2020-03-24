@@ -1,15 +1,17 @@
 package main
 
 import (
+	"net"
+
 	"github.com/g-Halo/go-server/api/ws_api"
 	"github.com/g-Halo/go-server/conf"
 	"github.com/g-Halo/go-server/internal/ws_conn"
 	"github.com/g-Halo/go-server/pkg/logger"
 	"github.com/g-Halo/go-server/pkg/pb"
+	"github.com/g-Halo/go-server/pkg/rpc_client"
 	"github.com/g-Halo/go-server/pkg/storage"
 	"github.com/g-Halo/go-server/pkg/util"
 	"google.golang.org/grpc"
-	"net"
 )
 
 func init() {
@@ -35,7 +37,7 @@ func main() {
 			panic(err)
 		}
 	}()
-
+	rpc_client.InitLogicClient(conf.Conf.LogicRPCAddress)
 	// 单独启动 websocket，用于与 js 端的 ws 进行连接
 	ws_conn.StartServer()
 }

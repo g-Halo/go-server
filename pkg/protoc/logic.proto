@@ -100,6 +100,14 @@ message KeepGetMessageResp {
     repeated KeepGetMessageItem messages = 4;
 }
 
+message UserOnlineReq {
+    string username = 1;
+}
+
+message UserOnlineResp {
+    string status = 1;
+}
+
 service Logic {
     // 发送消息
     rpc PushMessage(PushMessageReq) returns (PushMessageResp);
@@ -115,4 +123,8 @@ service Logic {
     rpc GetRoomMessages(GetRoomMessagesReq) returns(GetRoomMessagesResp);
     // 持续获取房间的动态消息
     rpc KeepGetMessage(KeepGetMessageReq) returns (KeepGetMessageResp);
+    // 用户上线
+    rpc UserOnline(UserOnlineReq) returns (UserOnlineResp);
+    // 用户下线
+    rpc UserOffline(UserOnlineReq) returns (UserOnlineResp);
 }

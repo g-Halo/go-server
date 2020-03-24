@@ -3,15 +3,16 @@ package ws_conn
 import (
 	"context"
 	"encoding/json"
+	"io"
+	"net/http"
+	"sync"
+	"time"
+
 	"github.com/g-Halo/go-server/internal/logic/model"
 	"github.com/g-Halo/go-server/pkg/logger"
 	"github.com/g-Halo/go-server/pkg/pb"
 	"github.com/g-Halo/go-server/pkg/storage"
 	"github.com/gorilla/websocket"
-	"io"
-	"net/http"
-	"sync"
-	"time"
 )
 
 const (
@@ -42,7 +43,6 @@ type Client struct {
 	user     *model.User
 }
 
-
 func wsHandler(w http.ResponseWriter, r *http.Request) {
 	// token 校验，获取 params token，校验是否存在用户
 	username := r.URL.Query().Get("username")
@@ -62,12 +62,11 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		logger.Fatal(err)
 	}
-	wsWrite, err := conn.NextWriter(websocket.TextMessage)
 	client := &Client{
-		user:   currentUser,
-		conn:   conn,
-		writer: wsWrite,
+		user: currentUser,
+		conn: conn,
 	}
+	conn.WriteMessage(websocket.TextMessage, []byte("success connect to websocket!!!"))
 
 	// 存储当前连接
 	store(currentUser.Username, client)
@@ -114,7 +113,6 @@ func (c *Client) Run() {
 	//	//}
 	//}
 }
-
 
 func (c *Client) Close() {
 	c.mutex.Lock()

@@ -6,6 +6,8 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+
+	"github.com/gorilla/websocket"
 )
 
 const (
@@ -14,6 +16,8 @@ const (
 )
 
 var Token = ""
+
+// var WebSocketUrl = flag.String("addr", "", "http service address")
 var currentUser = map[string]string{
 	"username": "test1",
 	"password": "123",
@@ -33,13 +37,35 @@ func main() {
 	// 登录
 	log.Print("Start Login...\n\n")
 	login()
-	log.Println("token:", Token)
+	log.Printf("token: %s \n\n", Token)
 	// ws 连接
+	wsConnect()
 
 	// 获取当前用户的房间信息
 	// 获取客户端的输入，往对方发送消息
-	log.Print("\n\nStart Push Message...")
+	log.Print("Start Push Message...")
 	pushTextMessage("test2", "hi")
+
+	select {}
+}
+
+// example: https://github.com/gorilla/websocket/blob/master/examples/echo/client.go
+func wsConnect() {
+	c, _, err := websocket.DefaultDialer.Dial("ws://127.0.0.1:7771/v1/ws?username=test1&token=test", nil)
+	if err != nil {
+		log.Fatal("dial:", err)
+	}
+
+	go func() {
+		for {
+			_, message, err := c.ReadMessage()
+			if err != nil {
+				log.Fatal("die")
+				return
+			}
+			log.Printf("receive: %s", message)
+		}
+	}()
 }
 
 func login() {
