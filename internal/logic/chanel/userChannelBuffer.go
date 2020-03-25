@@ -5,7 +5,6 @@ import (
 
 	"github.com/g-Halo/go-server/conf"
 	"github.com/g-Halo/go-server/internal/logic/model"
-	"github.com/g-Halo/go-server/pkg/logger"
 	// "github.com/g-Halo/go-server/internal/logic/service"
 )
 
@@ -64,8 +63,6 @@ func (buff *UCBuff) PushMessage(room *model.Room, message *model.Message) {
 	}
 	acceptorBuff.MsgLength += 1
 	acceptorBuff.Mutex.Unlock()
-	logger.Info("-- sender ----")
-	logger.Info(acceptorBuff.Head)
 	// // 记录此消息到数据存储器
 	// rmsg := storage.GetRoomMsg(room.UUID)
 	// rmsg.AddMessage(message)

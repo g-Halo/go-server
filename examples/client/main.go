@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -45,11 +46,27 @@ func main() {
 
 	// 获取当前用户的房间信息
 	// 获取客户端的输入，往对方发送消息
-	for {
-		log.Print("Start Push Message...")
-		pushTextMessage("test2", "hi")
-		time.Sleep(time.Second * 2)
-	}
+	go func() {
+		index := 0
+		for {
+			log.Print("Start Push Message...")
+			pushTextMessage("test2", fmt.Sprintf("hi, %d", index))
+			index += 1
+			time.Sleep(time.Second * 1)
+		}
+	}()
+
+	go func() {
+		index := 20000
+		for {
+			log.Print("Start Push Message...")
+			pushTextMessage("test2", fmt.Sprintf("hi, %d", index))
+			index += 1
+			time.Sleep(time.Second * 1)
+		}
+	}()
+
+	select {}
 }
 
 // example: https://github.com/gorilla/websocket/blob/master/examples/echo/client.go

@@ -56,26 +56,35 @@ func Subscribe(username string) {
 		// }
 
 		if buff.MsgLength == 0 {
-
-		} else {
-			messages := make([]*model.Message, 0)
-			// buff.Mutex.Lock()
-			// FIXME: 如果读取消息的时候需要加锁， 如何做到不阻塞？
-			headNode := buff.Head
-
-			logger.Info(headNode)
-			for headNode != nil {
-				messages = append(messages, headNode.Message)
-				// if headNode == lastNode {
-				// 	break
-				// }
-				headNode = headNode.Next
-			}
-			// TODO: 一次性发送给消息订阅者，并且存储到 msgcache
-			log.Printf("%s 接受到消息", username)
-			log.Println(messages)
-			// buff.Mutex.Unlock()
-			time.Sleep(time.Second * 3)
+			continue
 		}
+
+		messages := make([]*model.Message, 0)
+		// FIXME: 如果读取消息的时候需要加锁， 如何做到不阻塞？
+		buff.Mutex.Lock()
+		headNode := buff.Head
+		lastNode := buff.Last
+		buff.Mutex.Unlock()
+
+		for headNode != nil {
+			messages = append(messages, headNode.Message)
+			if headNode == lastNode {
+				break
+			}
+			headNode = headNode.Next
+		}
+
+		// 移动头节点到最新的消息
+		if headNode != nil {
+			buff.Mutex.Lock()
+			buff.Head = headNode.Next
+			buff.Mutex.Unlock()
+		}
+
+		for _, item := range messages {
+			log.Printf("服务端 statisticSrv. %s 接受到消息: %s", username, item.Body)
+		}
+
+		time.Sleep(time.Second * 3)
 	}
 }
