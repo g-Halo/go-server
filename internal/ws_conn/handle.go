@@ -53,7 +53,6 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 
 	currentUser := storage.GetUser(username)
 	if currentUser == nil {
-		w.Write([]byte("-p\r\n"))
 		logger.Error("user not found")
 		return
 	}

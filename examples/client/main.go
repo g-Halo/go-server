@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/gorilla/websocket"
 )
@@ -39,18 +40,20 @@ func main() {
 	login()
 	log.Printf("token: %s \n\n", Token)
 	// ws 连接
-	wsConnect()
+	senderWsConnect()
+	acceptorWsConnect()
 
 	// 获取当前用户的房间信息
 	// 获取客户端的输入，往对方发送消息
-	log.Print("Start Push Message...")
-	pushTextMessage("test2", "hi")
-
-	select {}
+	for {
+		log.Print("Start Push Message...")
+		pushTextMessage("test2", "hi")
+		time.Sleep(time.Second * 2)
+	}
 }
 
 // example: https://github.com/gorilla/websocket/blob/master/examples/echo/client.go
-func wsConnect() {
+func senderWsConnect() {
 	c, _, err := websocket.DefaultDialer.Dial("ws://127.0.0.1:7771/v1/ws?username=test1&token=test", nil)
 	if err != nil {
 		log.Fatal("dial:", err)
@@ -63,7 +66,25 @@ func wsConnect() {
 				log.Fatal("die")
 				return
 			}
-			log.Printf("receive: %s", message)
+			log.Printf("test1 receive: %s", message)
+		}
+	}()
+}
+
+func acceptorWsConnect() {
+	c, _, err := websocket.DefaultDialer.Dial("ws://127.0.0.1:7771/v1/ws?username=test2&token=test", nil)
+	if err != nil {
+		log.Fatal("dial:", err)
+	}
+
+	go func() {
+		for {
+			_, message, err := c.ReadMessage()
+			if err != nil {
+				log.Fatal("die")
+				return
+			}
+			log.Printf("test2 receive: %s", message)
 		}
 	}()
 }
@@ -85,7 +106,12 @@ func login() {
 	if err != nil {
 		panic(err)
 	}
-	Token = response.Data["token"].(string)
+
+	if response.Status == 200 {
+		Token = response.Data["token"].(string)
+	} else {
+		panic("token is nil, login fail")
+	}
 }
 
 func pushTextMessage(acceptorUsername string, message string) {

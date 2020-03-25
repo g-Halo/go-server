@@ -5,24 +5,24 @@ import (
 
 	"github.com/g-Halo/go-server/conf"
 	"github.com/g-Halo/go-server/internal/logic/model"
-
+	"github.com/g-Halo/go-server/pkg/logger"
 	// "github.com/g-Halo/go-server/internal/logic/service"
-	"github.com/g-Halo/go-server/pkg/storage"
 )
 
 var UserChannelBuffer *ChannelList
 
+// Remark: 实际上并不需要关注是谁发送过来的消息，这部分信息其实 message 已经包含了
 type UCBuff struct {
 	Username  string
 	MsgLength int
-	Head      map[string]*MessageBuffer
-	Last      map[string]*MessageBuffer
+	Head      *MessageBufferNode
+	Last      *MessageBufferNode
 	Mutex     *sync.Mutex
 }
 
-type MessageBuffer struct {
+type MessageBufferNode struct {
 	Message *model.Message
-	Next    *MessageBuffer
+	Next    *MessageBufferNode
 }
 
 func InitUserChanBuffer() {
@@ -33,9 +33,9 @@ func NewUserChanBuff(Username string) *UCBuff {
 	buff := &UCBuff{
 		Username:  Username,
 		MsgLength: 0,
-		Head:      make(map[string]*MessageBuffer, 128),
-		Last:      make(map[string]*MessageBuffer, 128),
-		Mutex:     &sync.Mutex{},
+		// Head:      make(map[string]*MessageBufferNode, 128),
+		// Last:      make(map[string]*MessageBufferNode, 128),
+		Mutex: &sync.Mutex{},
 	}
 	return buff
 }
@@ -45,27 +45,32 @@ func (buff *UCBuff) PushMessage(room *model.Room, message *model.Message) {
 	acceptorBuff, _ := UserChannelBuffer.Get(room.Acceptor)
 	acceptorBuff.Mutex.Lock()
 
-	buffLink := &MessageBuffer{
+	// acceptorBuff.Sender[room.Sender] = true
+
+	buffLink := &MessageBufferNode{
 		Message: message,
 		Next:    nil,
 	}
+
 	if acceptorBuff.Head == nil {
-		acceptorBuff.Head[room.Sender] = buffLink
+		acceptorBuff.Head = buffLink
 	}
-	lastNode := acceptorBuff.Last
-	if lastNode[room.Sender] == nil {
-		lastNode[room.Sender] = buffLink
+
+	if acceptorBuff.Last == nil {
+		acceptorBuff.Last = buffLink
 	} else {
-		lastNode[room.Sender].Next = buffLink
-		acceptorBuff.Last[room.Sender] = buffLink
+		acceptorBuff.Last.Next = buffLink
+		acceptorBuff.Last = buffLink
 	}
 	acceptorBuff.MsgLength += 1
 	acceptorBuff.Mutex.Unlock()
-	// 记录此消息到数据存储器
-	rmsg := storage.GetRoomMsg(room.UUID)
-	rmsg.AddMessage(message)
-	// 记录发送方的消息顺序Cache
-	MsgCachedPut(room.Sender, room.UUID, message)
-	// 记录接收方的消息顺序Cache
-	MsgCachedPut(room.Acceptor, room.UUID, message)
+	logger.Info("-- sender ----")
+	logger.Info(acceptorBuff.Head)
+	// // 记录此消息到数据存储器
+	// rmsg := storage.GetRoomMsg(room.UUID)
+	// rmsg.AddMessage(message)
+	// // 记录发送方的消息顺序Cache
+	// MsgCachedPut(room.Sender, room.UUID, message)
+	// // 记录接收方的消息顺序Cache
+	// MsgCachedPut(room.Acceptor, room.UUID, message)
 }

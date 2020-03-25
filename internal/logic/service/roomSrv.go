@@ -48,14 +48,14 @@ func (s *roomService) Push(senderUsername, receiverUsername string, data string)
 		return errors.New("Room Not Found")
 	}
 
-	rChan, _ := chanel.UserChannelBuffer.Get(currentUser.Username)
+	buff, _ := chanel.UserChannelBuffer.Get(currentUser.Username)
 	// currentUser.Rooms = append(currentUser.Rooms, room)
 	// user.Rooms = append(user.Rooms, room)
 	// storage.UpdateUser(currentUser)
 	// storage.UpdateUser(user)
 	var Message model.Message
 	msg := Message.Create(currentUser, user, *room, data)
-	rChan.PushMessage(room, msg)
+	buff.PushMessage(room, msg)
 
 	return nil
 }
