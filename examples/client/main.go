@@ -3,7 +3,6 @@ package main
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -19,7 +18,6 @@ const (
 
 var Token = ""
 
-// var WebSocketUrl = flag.String("addr", "", "http service address")
 var currentUser = map[string]string{
 	"username": "test1",
 	"password": "123",
@@ -35,75 +33,92 @@ type TextMessageReq struct {
 	Message  string `json:"message"`
 }
 
+var senderConn *websocket.Conn
+
+type client struct {
+	username string
+	conn     *websocket.Conn
+}
+
 func main() {
 	// 登录
-	log.Print("Start Login...\n\n")
-	login()
-	log.Printf("token: %s \n\n", Token)
+	// log.Print("Start Login...\n\n")
+	// login()
+	// log.Printf("token: %s \n\n", Token)
+
 	// ws 连接
-	senderWsConnect()
-	acceptorWsConnect()
+	senderConn := connetWs("ws://127.0.0.1:7771/v1/ws?username=test1&token=test")
+	acceptorConn := connetWs("ws://127.0.0.1:7771/v1/ws?username=test2&token=test")
+	senderClient := &client{
+		username: "test1",
+		conn:     senderConn,
+	}
+	accepClient := &client{
+		username: "test2",
+		conn:     acceptorConn,
+	}
+	go senderClient.Ping()
+	go senderClient.receiveMessage()
 
-	// 获取当前用户的房间信息
+	go accepClient.Ping()
+	go accepClient.receiveMessage()
+
 	// 获取客户端的输入，往对方发送消息
-	go func() {
-		index := 0
-		for {
-			log.Print("Start Push Message...")
-			pushTextMessage("test2", fmt.Sprintf("hi, %d", index))
-			index += 1
-			time.Sleep(time.Second * 1)
-		}
-	}()
-
-	go func() {
-		index := 20000
-		for {
-			log.Print("Start Push Message...")
-			pushTextMessage("test2", fmt.Sprintf("hi, %d", index))
-			index += 1
-			time.Sleep(time.Second * 1)
-		}
-	}()
+	// go func() {
+	// 	index := 0
+	// 	for {
+	// 		log.Print("Start Push Message...")
+	// 		pushTextMessage("test2", fmt.Sprintf("hi, %d", index))
+	// 		index += 1
+	// 		time.Sleep(time.Second * 1)
+	// 	}
+	// }()
 
 	select {}
 }
 
 // example: https://github.com/gorilla/websocket/blob/master/examples/echo/client.go
-func senderWsConnect() {
-	c, _, err := websocket.DefaultDialer.Dial("ws://127.0.0.1:7771/v1/ws?username=test1&token=test", nil)
+func connetWs(url string) *websocket.Conn {
+	c, _, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
-		log.Fatal("dial:", err)
-	}
-
-	go func() {
+		log.Print("connect fail..")
 		for {
-			_, message, err := c.ReadMessage()
-			if err != nil {
-				log.Fatal("die")
-				return
+			t := time.NewTicker(3 * time.Second)
+			select {
+			case <-t.C:
+				log.Println("retry to connect...")
+				c, _, err := websocket.DefaultDialer.Dial(url, nil)
+				if err == nil {
+					t.Stop()
+					return c
+				}
 			}
-			log.Printf("test1 receive: %s", message)
 		}
-	}()
+	} else {
+		return c
+	}
 }
 
-func acceptorWsConnect() {
-	c, _, err := websocket.DefaultDialer.Dial("ws://127.0.0.1:7771/v1/ws?username=test2&token=test", nil)
-	if err != nil {
-		log.Fatal("dial:", err)
-	}
-
-	go func() {
-		for {
-			_, message, err := c.ReadMessage()
-			if err != nil {
-				log.Fatal("die")
-				return
-			}
-			log.Printf("test2 receive: %s", message)
+func (c *client) receiveMessage() {
+	for {
+		_, message, err := c.conn.ReadMessage()
+		if err != nil {
+			log.Fatal("die")
+			return
 		}
-	}()
+		log.Printf("%s receive: %s", c.username, message)
+	}
+}
+
+func (c *client) Ping() {
+	for {
+		err := c.conn.WriteMessage(websocket.PongMessage, []byte{})
+		if err != nil {
+			// 服务端连接已断开
+
+		}
+		time.Sleep(time.Second * 3)
+	}
 }
 
 func login() {
