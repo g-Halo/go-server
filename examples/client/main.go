@@ -38,6 +38,7 @@ var senderConn *websocket.Conn
 
 type client struct {
 	username string
+	wsUrl    string
 	conn     *websocket.Conn
 }
 
@@ -47,21 +48,21 @@ func main() {
 	login()
 	log.Printf("token: %s \n\n", Token)
 
-	// ws 连接
-	senderConn := connetWs("ws://127.0.0.1:7771/v1/ws?username=test1&token=test")
-	acceptorConn := connetWs("ws://127.0.0.1:7771/v1/ws?username=test2&token=test")
 	senderClient := &client{
 		username: "test1",
-		conn:     senderConn,
+		wsUrl:    "ws://127.0.0.1:7771/v1/ws?username=test1&token=test",
 	}
 	accepClient := &client{
 		username: "test2",
-		conn:     acceptorConn,
+		wsUrl:    "ws://127.0.0.1:7771/v1/ws?username=test2&token=test",
 	}
-	go senderClient.Ping()
-	go senderClient.receiveMessage()
+	// ws 连接
+	senderClient.connetWs()
+	accepClient.connetWs()
 
-	go accepClient.Ping()
+	// go senderClient.Ping()
+	go senderClient.receiveMessage()
+	// go accepClient.Ping()
 	go accepClient.receiveMessage()
 
 	// 获取客户端的输入，往对方发送消息
@@ -82,7 +83,8 @@ func main() {
 }
 
 // example: https://github.com/gorilla/websocket/blob/master/examples/echo/client.go
-func connetWs(url string) *websocket.Conn {
+func (client *client) connetWs() {
+	url := client.wsUrl
 	c, _, err := websocket.DefaultDialer.Dial(url, nil)
 	if err != nil {
 		log.Print("connect fail..")
@@ -94,12 +96,13 @@ func connetWs(url string) *websocket.Conn {
 				c, _, err := websocket.DefaultDialer.Dial(url, nil)
 				if err == nil {
 					t.Stop()
-					return c
+					client.conn = c
+					return
 				}
 			}
 		}
 	} else {
-		return c
+		client.conn = c
 	}
 }
 
@@ -107,23 +110,22 @@ func (c *client) receiveMessage() {
 	for {
 		_, message, err := c.conn.ReadMessage()
 		if err != nil {
-			log.Fatal("die")
-			return
+			c.connetWs()
 		}
 		log.Printf("%s receive: %s", c.username, message)
 	}
 }
 
-func (c *client) Ping() {
-	for {
-		err := c.conn.WriteMessage(websocket.PongMessage, []byte{})
-		if err != nil {
-			// 服务端连接已断开
+// func (c *client) Ping() {
+// 	for {
+// 		err := c.conn.WriteMessage(websocket.PongMessage, []byte{})
+// 		if err != nil {
+// 			// 服务端连接已断开
 
-		}
-		time.Sleep(time.Second * 3)
-	}
-}
+// 		}
+// 		time.Sleep(time.Second * 3)
+// 	}
+// }
 
 func login() {
 	jsonStr, _ := json.Marshal(currentUser)
@@ -157,10 +159,13 @@ func pushTextMessage(acceptorUsername string, message string) {
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("token", Token)
 
-	client := &http.Client{}
+	client := &http.Client{
+		Timeout: time.Second * 3,
+	}
 	resp, err := client.Do(req)
 	if err != nil {
-		panic(err)
+		log.Print(err)
+		return
 	}
 	defer resp.Body.Close()
 

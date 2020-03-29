@@ -3,13 +3,14 @@ package http_api
 import (
 	"context"
 	"encoding/json"
+	"net/http"
+	"net/url"
+	"time"
+
 	"github.com/g-Halo/go-server/pkg/logger"
 	"github.com/g-Halo/go-server/pkg/pb"
 	"github.com/g-Halo/go-server/pkg/rpc_client"
 	"github.com/g-Halo/go-server/pkg/storage"
-	"net/http"
-	"net/url"
-	"time"
 
 	"github.com/g-Halo/go-server/internal/logic/model"
 	"github.com/g-Halo/go-server/pkg/util"
@@ -89,8 +90,8 @@ func getUser(username string) *model.User {
 
 func getRoom(currentUsername, targetUsername string) *model.Room {
 	r, err := rpc_client.LogicClient.FindOrCreateRoom(context.Background(), &pb.FindOrCreateRoomReq{
-		CurrentUsername:      currentUsername,
-		TargetUsername:       targetUsername,
+		CurrentUsername: currentUsername,
+		TargetUsername:  targetUsername,
 	})
 	if err != nil {
 		logger.Error(err)
@@ -98,10 +99,10 @@ func getRoom(currentUsername, targetUsername string) *model.Room {
 	}
 
 	return &model.Room{
-		UUID:      r.Uuid,
-		Name:      r.Name,
-		Members:   []string{currentUsername, targetUsername},
-		Type:      r.Type,
+		UUID:    r.Uuid,
+		Name:    r.Name,
+		Members: []string{currentUsername, targetUsername},
+		Type:    r.Type,
 	}
 }
 
@@ -124,9 +125,9 @@ func signHandler(w http.ResponseWriter, req *http.Request, ps httprouter.Params)
 	}
 
 	resp, err := rpc_client.AuthClient.SignUp(context.Background(), &pb.SignUpReq{
-		Nickname:             req.URL.Query().Get("nickname"),
-		Username:             req.URL.Query().Get("username"),
-		Password:             req.URL.Query().Get("password"),
+		Nickname: req.URL.Query().Get("nickname"),
+		Username: req.URL.Query().Get("username"),
+		Password: req.URL.Query().Get("password"),
 	})
 	if err != nil {
 		return renderError(err.Error()), nil
@@ -153,8 +154,8 @@ func loginHandler(w http.ResponseWriter, req *http.Request, ps httprouter.Params
 	}
 
 	r, err := rpc_client.AuthClient.SignIn(context.Background(), &pb.AuthReq{
-		Username:             params.Username,
-		Passowrd:             params.Password,
+		Username: params.Username,
+		Passowrd: params.Password,
 	})
 
 	if err != nil {
@@ -184,8 +185,8 @@ func GetContacts(w http.ResponseWriter, req *http.Request, currentUser *model.Us
 	var users []*model.User
 	for _, u := range resp.Users {
 		users = append(users, &model.User{
-			Username:    u.Username,
-			NickName:    u.Nickname,
+			Username: u.Username,
+			NickName: u.Nickname,
 		})
 	}
 
@@ -247,7 +248,7 @@ func GetMessages(w http.ResponseWriter, req *http.Request, currentUser *model.Us
 	chatData = make([]map[string]interface{}, 0)
 
 	m, _ := rpc_client.LogicClient.GetRoomMessages(context.Background(), &pb.GetRoomMessagesReq{
-		Uuid:                 roomID,
+		Uuid: roomID,
 	})
 	for _, msg := range m.RoomMessages {
 		chatData = append(chatData, map[string]interface{}{
@@ -291,7 +292,6 @@ func CreateRoom(w http.ResponseWriter, req *http.Request, currentUser *model.Use
 		return renderError("TargetUser can not be yourself"), nil
 	}
 
-
 	room := getRoom(currentUser.Username, user.Username)
 	if room == nil {
 		return renderError("房间创建失败"), nil
@@ -324,13 +324,13 @@ func PushMessage(w http.ResponseWriter, req *http.Request, currentUser *model.Us
 	}
 
 	_, err = rpc_client.LogicClient.PushMessage(context.Background(), &pb.PushMessageReq{
-		ReceiverUsername:     params.Username,
-		SenderUsername:       currentUser.Username,
-		Body:                 params.Message,
+		ReceiverUsername: params.Username,
+		SenderUsername:   currentUser.Username,
+		Body:             params.Message,
 	})
 
 	if err != nil {
-		return renderError(err.Error()), nil
+		return renderError("发送失败. Fail -1"), nil
 	}
 
 	// FIXME: 此处无法保证一定能返回正确的消息给用户

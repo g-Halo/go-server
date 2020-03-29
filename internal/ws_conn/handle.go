@@ -39,11 +39,11 @@ var upgrader = websocket.Upgrader{
 }
 
 type Client struct {
-	mutex sync.Mutex
-
-	conn   *websocket.Conn
-	writer io.WriteCloser
-	user   *model.User
+	mutex    sync.Mutex
+	isOnline bool
+	conn     *websocket.Conn
+	writer   io.WriteCloser
+	user     *model.User
 }
 
 func wsHandler(w http.ResponseWriter, r *http.Request) {
@@ -65,17 +65,16 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 		logger.Fatal(err)
 	}
 	client := &Client{
-		user: currentUser,
-		conn: conn,
+		user:     currentUser,
+		isOnline: true,
+		conn:     conn,
 	}
-
 	client.write(websocket.TextMessage, []byte("success connect to websocket!!!"))
-
 	// pings headtbeat
 	go client.ping()
-
 	// 存储当前连接
 	store(currentUser.Username, client)
+	client.Online(currentUser.Username)
 	client.Run()
 }
 
@@ -95,12 +94,19 @@ func (client *Client) ping() {
 	for {
 		select {
 		case <-ticker.C:
+			if !client.isOnline {
+				// 已下线
+				client.Close()
+				return
+			}
+
 			if err := client.write(websocket.PingMessage, []byte{}); err != nil {
 				logger.Error("对方连接已经断开")
+				client.Close()
 				// TODO: 尝试重新连接
 				return
 			} else {
-				logger.Infof("heart beat to %s", client.user.Username)
+				logger.Infof("heartbeat %s", client.user.Username)
 			}
 		}
 	}
@@ -146,9 +152,16 @@ func (c *Client) Run() {
 	}
 }
 
+func (c *Client) Online(username string) {
+	rpc_client.LogicClient.UserOnline(context.Background(), &pb.UserOnlineReq{
+		Username: username,
+	})
+}
+
 func (c *Client) Close() {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
+	c.isOnline = false
 	rpc_client.LogicClient.UserOffline(context.Background(), &pb.UserOnlineReq{
 		Username: c.user.Username,
 	})

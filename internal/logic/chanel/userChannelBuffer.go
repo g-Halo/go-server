@@ -5,7 +5,7 @@ import (
 
 	"github.com/g-Halo/go-server/conf"
 	"github.com/g-Halo/go-server/internal/logic/model"
-	// "github.com/g-Halo/go-server/internal/logic/service"
+	"github.com/g-Halo/go-server/pkg/storage"
 )
 
 var UserChannelBuffer *ChannelList
@@ -14,7 +14,7 @@ var UserChannelBuffer *ChannelList
 type UCBuff struct {
 	Username      string
 	MsgLength     int
-	HasNewMessage chan interface{} // 是否有新消息？
+	HasNewMessage chan interface{} // 是否有新消息
 	Head          *MessageBufferNode
 	Last          *MessageBufferNode
 	Mutex         *sync.Mutex
@@ -34,9 +34,7 @@ func NewUserChanBuff(Username string) *UCBuff {
 		Username:      Username,
 		MsgLength:     0,
 		HasNewMessage: make(chan interface{}, 1),
-		// Head:      make(map[string]*MessageBufferNode, 128),
-		// Last:      make(map[string]*MessageBufferNode, 128),
-		Mutex: &sync.Mutex{},
+		Mutex:         &sync.Mutex{},
 	}
 	return buff
 }
@@ -45,8 +43,6 @@ func (buff *UCBuff) PushMessage(room *model.Room, message *model.Message) {
 	// 1. 把消息记录到接收方的消息链表
 	acceptorBuff, _ := UserChannelBuffer.Get(room.Acceptor)
 	acceptorBuff.Mutex.Lock()
-
-	// acceptorBuff.Sender[room.Sender] = true
 
 	buffLink := &MessageBufferNode{
 		Message: message,
@@ -65,13 +61,25 @@ func (buff *UCBuff) PushMessage(room *model.Room, message *model.Message) {
 	}
 	acceptorBuff.MsgLength += 1
 	acceptorBuff.Mutex.Unlock()
+
+	// 处理上线
+	acceptorBuff.Online()
 	// 通知订阅者有新的消息
 	acceptorBuff.HasNewMessage <- true
-	// // 记录此消息到数据存储器
-	// rmsg := storage.GetRoomMsg(room.UUID)
-	// rmsg.AddMessage(message)
-	// // 记录发送方的消息顺序Cache
-	// MsgCachedPut(room.Sender, room.UUID, message)
-	// // 记录接收方的消息顺序Cache
-	// MsgCachedPut(room.Acceptor, room.UUID, message)
+
+	// 把消息记录到 "消息-房间" 的关联关系
+	rmsg := storage.GetRoomMsg(room.UUID)
+	rmsg.AddMessage(message)
+
+	// 维护发送方的消息列表
+	MsgCachedPut(room.Sender, room.UUID, message)
+	// 维护接收方的消息列表
+	MsgCachedPut(room.Acceptor, room.UUID, message)
+}
+
+func (buff *UCBuff) Online() {
+	username := buff.Username
+	UsersOnlineSts.Store(username, true)
+	// FIXME: SubsChans 限制了同一时间只能有 xx 个一起发送消息？
+	SubsChans <- username
 }

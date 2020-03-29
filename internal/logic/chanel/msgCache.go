@@ -10,6 +10,7 @@ func InitMessageCachedList() {
 	MessageCachedList = make(map[string]([]*model.Message), 128)
 }
 
+// FIXME: 数据如何持久化？
 func MsgCachedPut(username string, roomUUID string, message *model.Message) {
 	messageKey := username + "-" + roomUUID
 	_, ok := MessageCachedList[messageKey]
