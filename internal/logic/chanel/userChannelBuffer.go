@@ -12,11 +12,12 @@ var UserChannelBuffer *ChannelList
 
 // Remark: 实际上并不需要关注是谁发送过来的消息，这部分信息其实 message 已经包含了
 type UCBuff struct {
-	Username  string
-	MsgLength int
-	Head      *MessageBufferNode
-	Last      *MessageBufferNode
-	Mutex     *sync.Mutex
+	Username      string
+	MsgLength     int
+	HasNewMessage chan interface{} // 是否有新消息？
+	Head          *MessageBufferNode
+	Last          *MessageBufferNode
+	Mutex         *sync.Mutex
 }
 
 type MessageBufferNode struct {
@@ -30,8 +31,9 @@ func InitUserChanBuffer() {
 
 func NewUserChanBuff(Username string) *UCBuff {
 	buff := &UCBuff{
-		Username:  Username,
-		MsgLength: 0,
+		Username:      Username,
+		MsgLength:     0,
+		HasNewMessage: make(chan interface{}, 1),
 		// Head:      make(map[string]*MessageBufferNode, 128),
 		// Last:      make(map[string]*MessageBufferNode, 128),
 		Mutex: &sync.Mutex{},
@@ -63,6 +65,8 @@ func (buff *UCBuff) PushMessage(room *model.Room, message *model.Message) {
 	}
 	acceptorBuff.MsgLength += 1
 	acceptorBuff.Mutex.Unlock()
+	// 通知订阅者有新的消息
+	acceptorBuff.HasNewMessage <- true
 	// // 记录此消息到数据存储器
 	// rmsg := storage.GetRoomMsg(room.UUID)
 	// rmsg.AddMessage(message)

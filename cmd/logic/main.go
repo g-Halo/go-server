@@ -1,7 +1,11 @@
 package main
 
 import (
+	"fmt"
 	"net"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/g-Halo/go-server/api/auth"
 	"github.com/g-Halo/go-server/api/logic"
@@ -73,6 +77,23 @@ func main() {
 
 	// 连接 websocket 注册的 RPC
 	rpc_client.InitWsClient(conf.Conf.WebSocketAddress)
-	select {}
+	// 与 commet 层进行连接
+	// rpc_client.ConnectToComet(conf.Conf.CommetAddress)
+	go chanel.Subscribe()
 
+	c := make(chan os.Signal)
+	signal.Notify(c)
+	for s := range c {
+		switch s {
+		case syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGKILL:
+			fmt.Println("退出", s)
+			os.Exit(0)
+		case syscall.SIGUSR1:
+			fmt.Println("usr1", s)
+		case syscall.SIGUSR2:
+			fmt.Println("usr2", s)
+		default:
+			fmt.Println("other", s)
+		}
+	}
 }

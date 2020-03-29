@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -42,9 +43,9 @@ type client struct {
 
 func main() {
 	// 登录
-	// log.Print("Start Login...\n\n")
-	// login()
-	// log.Printf("token: %s \n\n", Token)
+	log.Print("Start Login...\n\n")
+	login()
+	log.Printf("token: %s \n\n", Token)
 
 	// ws 连接
 	senderConn := connetWs("ws://127.0.0.1:7771/v1/ws?username=test1&token=test")
@@ -64,15 +65,18 @@ func main() {
 	go accepClient.receiveMessage()
 
 	// 获取客户端的输入，往对方发送消息
-	// go func() {
-	// 	index := 0
-	// 	for {
-	// 		log.Print("Start Push Message...")
-	// 		pushTextMessage("test2", fmt.Sprintf("hi, %d", index))
-	// 		index += 1
-	// 		time.Sleep(time.Second * 1)
-	// 	}
-	// }()
+	for i := 1; i < 2; i += 1 {
+		go func(i int) {
+			index := 0
+			fmt.Printf("协程 %d", i)
+			for {
+				log.Print("Start Push Message...")
+				pushTextMessage("test2", fmt.Sprintf("hi, 协程 %d, %d", i, index))
+				index += 1
+				time.Sleep(time.Millisecond * 100)
+			}
+		}(i)
+	}
 
 	select {}
 }
@@ -163,5 +167,5 @@ func pushTextMessage(acceptorUsername string, message string) {
 	// response := &RespCommon{}
 	// err = json.NewDecoder(resp.Body).Decode(response)
 	str, _ := ioutil.ReadAll(resp.Body)
-	log.Print(string(str))
+	log.Printf("发送 %s，status: %s", message, string(str))
 }
