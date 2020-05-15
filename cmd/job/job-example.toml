@@ -1,0 +1,5 @@
+mq = "nsq"
+[nsq]
+    nsqloopupd = "127.0.0.1:4160"
+    topic = "go-chat"
+    channel = "default"

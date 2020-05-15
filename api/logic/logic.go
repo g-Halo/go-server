@@ -2,20 +2,29 @@ package logic
 
 import (
 	"context"
+	"github.com/g-Halo/go-server/pkg/mq"
 
 	"github.com/g-Halo/go-server/internal/logic/service"
 	"github.com/g-Halo/go-server/pkg/pb"
 	"github.com/g-Halo/go-server/pkg/storage"
 )
 
-type LogicServer struct{}
+type Server struct {
+	Mq *mq.MQ
+}
 
-func (s *LogicServer) PushMessage(ctx context.Context, in *pb.PushMessageReq) (*pb.PushMessageResp, error) {
+func New() *Server {
+	return &Server{
+		Mq: mq.New(),
+	}
+}
+
+func (s *Server) PushMessage(ctx context.Context, in *pb.PushMessageReq) (*pb.PushMessageResp, error) {
 	err := service.RoomService.Push(in.GetSenderUsername(), in.GetReceiverUsername(), in.GetBody())
 	return &pb.PushMessageResp{}, err
 }
 
-func (s *LogicServer) GetUser(ctx context.Context, in *pb.GetUserReq) (*pb.GetUserResp, error) {
+func (s *Server) GetUser(ctx context.Context, in *pb.GetUserReq) (*pb.GetUserResp, error) {
 	user := service.UserService.FindByUsername(in.GetUsername())
 	if user == nil {
 		return nil, nil
@@ -42,7 +51,7 @@ func (s *LogicServer) GetUser(ctx context.Context, in *pb.GetUserReq) (*pb.GetUs
 	return pbUser, nil
 }
 
-func (s *LogicServer) GetUsers(ctx context.Context, in *pb.GetUsersReq) (*pb.GetUsersResp, error) {
+func (s *Server) GetUsers(ctx context.Context, in *pb.GetUsersReq) (*pb.GetUsersResp, error) {
 	users := service.UserService.GetUsers()
 	var pbUsers []*pb.User
 	for _, user := range users {
@@ -57,7 +66,7 @@ func (s *LogicServer) GetUsers(ctx context.Context, in *pb.GetUsersReq) (*pb.Get
 	return resp, nil
 }
 
-func (s *LogicServer) FindOrCreateRoom(ctx context.Context, in *pb.FindOrCreateRoomReq) (*pb.FindOrCreateRoomResp, error) {
+func (s *Server) FindOrCreateRoom(ctx context.Context, in *pb.FindOrCreateRoomReq) (*pb.FindOrCreateRoomResp, error) {
 	room := service.RoomService.FindOrCreate(in.GetCurrentUsername(), in.GetTargetUsername())
 	r := &pb.FindOrCreateRoomResp{
 		Uuid: room.UUID,
@@ -67,7 +76,7 @@ func (s *LogicServer) FindOrCreateRoom(ctx context.Context, in *pb.FindOrCreateR
 	return r, nil
 }
 
-func (s *LogicServer) GetRoomById(ctx context.Context, in *pb.GetRoomByIdReq) (*pb.GetRoomByIdResp, error) {
+func (s *Server) GetRoomById(ctx context.Context, in *pb.GetRoomByIdReq) (*pb.GetRoomByIdResp, error) {
 	room := storage.GetRoom(in.Uuid)
 	if room == nil {
 		return nil, nil
@@ -83,7 +92,7 @@ func (s *LogicServer) GetRoomById(ctx context.Context, in *pb.GetRoomByIdReq) (*
 	return pbRoom, nil
 }
 
-func (s *LogicServer) GetRoomMessages(ctx context.Context, in *pb.GetRoomMessagesReq) (*pb.GetRoomMessagesResp, error) {
+func (s *Server) GetRoomMessages(ctx context.Context, in *pb.GetRoomMessagesReq) (*pb.GetRoomMessagesResp, error) {
 	r := storage.GetRoomMsg(in.GetUuid())
 	var roomMessages []*pb.RoomMessage
 	for _, msg := range r.Messages {
@@ -103,7 +112,7 @@ func (s *LogicServer) GetRoomMessages(ctx context.Context, in *pb.GetRoomMessage
 	return res, nil
 }
 
-func (s *LogicServer) KeepGetMessage(ctx context.Context, in *pb.KeepGetMessageReq) (*pb.KeepGetMessageResp, error) {
+func (s *Server) KeepGetMessage(ctx context.Context, in *pb.KeepGetMessageReq) (*pb.KeepGetMessageResp, error) {
 	// rChan, _ := chanel.RoomChannels.Get(in.GetUuid())
 	// msg := rChan.GetMsg(in.GetUsername())
 	// if msg == nil {
@@ -149,12 +158,12 @@ func (s *LogicServer) KeepGetMessage(ctx context.Context, in *pb.KeepGetMessageR
 	return nil, nil
 }
 
-func (s *LogicServer) UserOnline(ctx context.Context, in *pb.UserOnlineReq) (*pb.UserOnlineResp, error) {
+func (s *Server) UserOnline(ctx context.Context, in *pb.UserOnlineReq) (*pb.UserOnlineResp, error) {
 	service.StatisticService.Online(in.GetUsername())
 	return &pb.UserOnlineResp{}, nil
 }
 
-func (s *LogicServer) UserOffline(ctx context.Context, in *pb.UserOnlineReq) (*pb.UserOnlineResp, error) {
+func (s *Server) UserOffline(ctx context.Context, in *pb.UserOnlineReq) (*pb.UserOnlineResp, error) {
 	service.StatisticService.Offline(in.GetUsername())
 	return &pb.UserOnlineResp{}, nil
 }

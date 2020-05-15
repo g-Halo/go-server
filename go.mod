@@ -6,6 +6,7 @@ require (
 	cloud.google.com/go v0.51.0 // indirect
 	cloud.google.com/go/storage v1.5.0 // indirect
 	dmitri.shuralyov.com/gpu/mtl v0.0.0-20191203043605-d42048ed14fd // indirect
+	github.com/BurntSushi/toml v0.3.1
 	github.com/cncf/udpa/go v0.0.0-20191230090109-edbea6a78f6d // indirect
 	github.com/creack/pty v1.1.9 // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
@@ -13,7 +14,6 @@ require (
 	github.com/go-redis/redis/v7 v7.0.0-beta.5
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/golang/protobuf v1.3.2
-	github.com/golang/snappy v0.0.1 // indirect
 	github.com/google/go-cmp v0.4.0 // indirect
 	github.com/gorilla/websocket v1.4.1
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
@@ -21,6 +21,7 @@ require (
 	github.com/kr/pretty v0.2.0 // indirect
 	github.com/kr/pty v1.1.8 // indirect
 	github.com/natefinch/lumberjack v2.0.0+incompatible
+	github.com/nsqio/go-nsq v1.0.8
 	github.com/prometheus/client_model v0.2.0 // indirect
 	github.com/rogpeppe/go-internal v1.5.2 // indirect
 	github.com/satori/go.uuid v1.2.0

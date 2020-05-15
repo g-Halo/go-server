@@ -68,7 +68,8 @@ func main() {
 			panic(err)
 		}
 		s := grpc.NewServer()
-		pb.RegisterLogicServer(s, &logic.LogicServer{})
+		logicServer := logic.New()
+		pb.RegisterLogicServer(s, logicServer)
 		logger.Info("Logic Rpc 注册成功")
 		if err := s.Serve(lis); err != nil {
 			panic(err)
@@ -79,7 +80,7 @@ func main() {
 	rpc_client.InitWsClient(conf.Conf.WebSocketAddress)
 	// 与 commet 层进行连接
 	// rpc_client.ConnectToComet(conf.Conf.CommetAddress)
-	go chanel.Subscribe()
+	//go chanel.Subscribe()
 
 	c := make(chan os.Signal)
 	signal.Notify(c)

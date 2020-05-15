@@ -42,7 +42,7 @@ func (t *tcpServer) Handle(clientConn net.Conn) {
 	}
 
 	logger.Info("Commet 连接成功啦")
-	err = comet.IOLoop(clientConn)
+	//err = comet.IOLoop(clientConn)
 	if err != nil {
 		return
 	}
